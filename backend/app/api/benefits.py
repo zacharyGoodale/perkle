@@ -113,6 +113,7 @@ def mark_benefit_used(
         cadence=cadence,
         reference_date=date.today(),
         card_anniversary=card_anniversary,
+        reset_type=reset_type,
     )
     
     # Check if period already exists
