@@ -136,3 +136,19 @@ Your account doesn't exist. Click "Create an account" to register.
 
 ### Database reset needed
 Delete `backend/data/perkle.db` (or `./data/perkle.db` in Docker) and restart.
+
+## Warp Environment (Future)
+
+To create a Warp environment for this repo:
+
+```bash
+warp environment create \
+  --name perkle \
+  --docker-image warpdotdev/dev-base:1 \
+  --repo zacharyGoodale/perkle \
+  --setup-command "cd perkle && pip install uv" \
+  --setup-command "cd perkle/backend && uv sync" \
+  --setup-command "cd perkle/frontend && npm install"
+```
+
+The `dev-base:1` image includes Python and Node.js. The setup commands install `uv` (Python package manager) and project dependencies.
