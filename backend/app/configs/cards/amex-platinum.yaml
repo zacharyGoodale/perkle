@@ -1,0 +1,163 @@
+slug: amex-platinum
+name: American Express Platinum Card
+issuer: American Express
+annual_fee: 895
+benefits_url: https://www.americanexpress.com/us/credit-cards/card/platinum/
+account_patterns:
+  - "Platinum Card®"
+  - "Platinum Card"
+
+benefits:
+  - slug: uber-cash
+    name: Uber Cash
+    value: 15
+    cadence: monthly
+    reset_type: calendar_year
+    tracking_mode: manual
+    notes: "$15/month ($20 in December) credited in Uber app. Add Platinum to Uber account."
+
+  - slug: uber-one
+    name: Uber One Membership Credit
+    value: 120
+    cadence: annual
+    reset_type: calendar_year
+    tracking_mode: auto
+    detection_rules:
+      credit_patterns:
+        - "Platinum Uber One Credit"
+        - "Uber One Credit"
+      lookback_days: 45
+    notes: "Up to $120/year for auto-renewing Uber One membership"
+
+  - slug: resy-credit
+    name: Resy Dining Credit
+    value: 100
+    cadence: quarterly
+    reset_type: calendar_year
+    tracking_mode: auto
+    detection_rules:
+      credit_patterns:
+        - "Platinum Resy Credit"
+        - "Resy Credit"
+      lookback_days: 30
+    notes: "$100/quarter at 10,000+ Resy restaurants. Enrollment required."
+
+  - slug: hotel-credit
+    name: Hotel Credit (FHR + Hotel Collection)
+    value: 300
+    cadence: semi-annual
+    reset_type: calendar_year
+    tracking_mode: auto
+    detection_rules:
+      credit_patterns:
+        - "Platinum Hotel Credit"
+        - "FHR Credit"
+        - "Hotel Collection Credit"
+      lookback_days: 60
+    notes: "$300 Jan-Jun, $300 Jul-Dec for prepaid bookings via Amex Travel"
+
+  - slug: saks-credit
+    name: Saks Fifth Avenue Credit
+    value: 50
+    cadence: semi-annual
+    reset_type: calendar_year
+    tracking_mode: auto
+    detection_rules:
+      credit_patterns:
+        - "Platinum Saks Credit"
+        - "Saks Credit"
+      lookback_days: 30
+    notes: "$50 Jan-Jun, $50 Jul-Dec at Saks or saks.com. Enrollment required."
+
+  - slug: digital-entertainment
+    name: Digital Entertainment Credit
+    value: 20
+    cadence: monthly
+    reset_type: calendar_year
+    tracking_mode: auto
+    detection_rules:
+      credit_patterns:
+        - "Platinum Digital Entertainment Credit"
+        - "Digital Entertainment"
+      lookback_days: 14
+    notes: "Audible, Peacock, SiriusXM, NYT, WSJ, etc. Enrollment required."
+
+  - slug: airline-fee
+    name: Airline Incidental Fee Credit
+    value: 200
+    cadence: annual
+    reset_type: calendar_year
+    tracking_mode: auto
+    detection_rules:
+      credit_patterns:
+        - "Airline Fee Credit"
+        - "Incidental Fee Credit"
+      lookback_days: 30
+    notes: "Select one airline. Covers baggage, seat selection, lounge passes, etc."
+
+  - slug: clear-credit
+    name: CLEAR Plus Credit
+    value: 209
+    cadence: annual
+    reset_type: calendar_year
+    tracking_mode: auto
+    detection_rules:
+      credit_patterns:
+        - "Clear Plus Credit"
+        - "CLEAR Credit"
+      lookback_days: 45
+    notes: "Covers CLEAR Plus membership when charged to card"
+
+  - slug: equinox-credit
+    name: Equinox Credit
+    value: 300
+    cadence: annual
+    reset_type: calendar_year
+    tracking_mode: auto
+    detection_rules:
+      credit_patterns:
+        - "Equinox Credit"
+        - "Platinum Equinox"
+      lookback_days: 45
+    notes: "$300/year toward Equinox membership fees. Credits applied as statement credits when membership charges post. Enrollment required."
+
+  - slug: lululemon-credit
+    name: Lululemon Credit
+    value: 75
+    cadence: quarterly
+    reset_type: calendar_year
+    tracking_mode: auto
+    detection_rules:
+      credit_patterns:
+        - "Platinum Lululemon Credit"
+        - "Lululemon Credit"
+      lookback_days: 30
+    notes: "$75/quarter at lululemon stores and online (excludes outlets). Enrollment required."
+
+  - slug: oura-credit
+    name: Oura Ring Credit
+    value: 200
+    cadence: annual
+    reset_type: calendar_year
+    tracking_mode: auto
+    detection_rules:
+      credit_patterns:
+        - "Oura Credit"
+        - "Platinum Oura"
+      lookback_days: 45
+    notes: "Up to $200/year at ouraring.com. Enrollment required."
+
+  - slug: global-entry
+    name: Global Entry/TSA PreCheck Credit
+    value: 120
+    cadence: rolling
+    reset_type: rolling_years
+    reset_years: 4
+    tracking_mode: auto
+    detection_rules:
+      credit_patterns:
+        - "Global Entry"
+        - "TSA PreCheck"
+        - "CBP Global Entry"
+      lookback_days: 60
+    notes: "Up to $120 every 4 years from last use"

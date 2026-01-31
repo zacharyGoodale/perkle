@@ -1,0 +1,45 @@
+slug: venture-x
+name: Capital One Venture X
+issuer: Capital One
+annual_fee: 395
+benefits_url: https://www.capitalone.com/credit-cards/venture-x/
+account_patterns:
+  - "Venture X"
+
+benefits:
+  - slug: travel-credit
+    name: Capital One Travel Credit
+    value: 300
+    cadence: annual
+    reset_type: cardmember_year
+    tracking_mode: manual
+    notes: "$300/cardmember year. Applied at checkout in Capital One Travel portal. Expires on anniversary."
+
+  - slug: anniversary-bonus
+    name: Anniversary Bonus Miles
+    value: 100
+    cadence: annual
+    reset_type: cardmember_year
+    tracking_mode: info
+    notes: "10,000 miles (~$100 value) automatically deposited on each cardmember anniversary. No action needed."
+
+  - slug: premier-collection-credit
+    name: Premier Collection Experience Credit
+    value: 100
+    cadence: per-booking
+    tracking_mode: info
+    notes: "$100 experience credit automatically applied per Premier Collection hotel/vacation rental booking. Also includes breakfast, upgrades. No action needed."
+
+  - slug: global-entry
+    name: Global Entry/TSA PreCheck Credit
+    value: 120
+    cadence: rolling
+    reset_type: rolling_years
+    reset_years: 4
+    tracking_mode: auto
+    detection_rules:
+      credit_patterns:
+        - "Global Entry"
+        - "TSA PreCheck"
+      lookback_days: 60
+    notes: "Up to $120 every 4 years from last use"

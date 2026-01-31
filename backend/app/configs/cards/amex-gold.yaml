@@ -1,0 +1,56 @@
+slug: amex-gold
+name: American Express Gold Card
+issuer: American Express
+annual_fee: 325
+benefits_url: https://www.americanexpress.com/us/credit-cards/card/gold-card/
+account_patterns:
+  - "American Express Gold Card"
+
+benefits:
+  - slug: uber-cash
+    name: Uber Cash
+    value: 10
+    cadence: monthly
+    reset_type: calendar_year
+    tracking_mode: manual
+    notes: "Add Gold Card to Uber account. $10/month loaded to Uber app."
+
+  - slug: dining-credit
+    name: Dining Credit (Grubhub, Cheesecake Factory, etc.)
+    value: 10
+    cadence: monthly
+    reset_type: calendar_year
+    tracking_mode: auto
+    detection_rules:
+      credit_patterns:
+        - "Amex Dining Credit"
+        - "Grubhub Credit"
+        - "Gold Dining Credit"
+      lookback_days: 14
+    notes: "Enroll monthly. Pick one partner: Grubhub, Cheesecake Factory, Goldbelly, Wine.com, Five Guys"
+
+  - slug: resy-credit
+    name: Resy Credit
+    value: 50
+    cadence: semi-annual
+    reset_type: calendar_year
+    tracking_mode: auto
+    detection_rules:
+      credit_patterns:
+        - "Amex Resy Credit"
+        - "Gold Resy Credit"
+      lookback_days: 30
+    notes: "$50 Jan-Jun, $50 Jul-Dec at participating Resy restaurants"
+
+  - slug: dunkin-credit
+    name: Dunkin' Credit
+    value: 7
+    cadence: monthly
+    reset_type: calendar_year
+    tracking_mode: auto
+    detection_rules:
+      credit_patterns:
+        - "Dunkin Credit"
+        - "Gold Dunkin Credit"
+      lookback_days: 14
+    notes: "Enrollment required"

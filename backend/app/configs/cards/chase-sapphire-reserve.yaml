@@ -1,0 +1,121 @@
+slug: chase-sapphire-reserve
+name: Chase Sapphire Reserve
+issuer: Chase
+annual_fee: 795
+benefits_url: https://account.chase.com/sapphire/reserve/benefits
+account_patterns:
+  - "Ultimate Rewards®"
+  - "Sapphire Reserve"
+
+benefits:
+  - slug: travel-credit
+    name: Annual Travel Credit
+    value: 300
+    cadence: annual
+    reset_type: cardmember_year
+    tracking_mode: auto
+    detection_rules:
+      credit_patterns:
+        - "Travel Credit"
+        - "Annual Travel"
+      lookback_days: 30
+    notes: "$300/cardmember year. Broad travel category: flights, hotels, Uber, Lyft, parking, tolls. Resets on card anniversary."
+
+  - slug: dining-credit
+    name: Exclusive Tables Dining Credit
+    value: 150
+    cadence: semi-annual
+    reset_type: calendar_year
+    tracking_mode: auto
+    detection_rules:
+      credit_patterns:
+        - "Exclusive Tables"
+        - "Dining Credit"
+      lookback_days: 30
+    notes: "$150 Jan-Jun, $150 Jul-Dec at Sapphire Reserve Exclusive Tables restaurants"
+
+  - slug: edit-hotel-credit
+    name: The Edit Hotel Credit
+    value: 250
+    cadence: semi-annual
+    reset_type: calendar_year
+    tracking_mode: auto
+    detection_rules:
+      credit_patterns:
+        - "Edit Credit"
+        - "Edit Hotel Credit"
+        - "Hotel Credit"
+      lookback_days: 60
+    notes: "$250 Jan-Jun, $250 Jul-Dec. Prepaid 2-night min at The Edit properties via Chase Travel. Also includes $100 property credit + breakfast."
+
+  - slug: select-hotels-credit
+    name: Select Hotels Credit (2026 only)
+    value: 250
+    cadence: annual
+    reset_type: calendar_year
+    tracking_mode: auto
+    detection_rules:
+      credit_patterns:
+        - "Hotel Credit"
+        - "Select Hotel"
+      lookback_days: 60
+    notes: "One-time $250 for 2026. Prepaid 2-night min via Chase Travel at IHG, Montage, Pendry, Omni, Virgin, Minor, Pan Pacific. Can stack with Edit credit at overlapping properties."
+
+  - slug: stubhub-credit
+    name: StubHub/viagogo Credit
+    value: 150
+    cadence: semi-annual
+    reset_type: calendar_year
+    tracking_mode: auto
+    detection_rules:
+      credit_patterns:
+        - "Stubhub Credit"
+        - "viagogo Credit"
+      lookback_days: 30
+    notes: "$150 Jan-Jun, $150 Jul-Dec. Valid through 12/31/2027."
+
+  - slug: lyft-credit
+    name: Lyft Credit
+    value: 10
+    cadence: monthly
+    reset_type: calendar_year
+    tracking_mode: manual
+    notes: "$10/month credit in Lyft app. Link your CSR to Lyft account to receive."
+
+  - slug: doordash-grocery
+    name: DoorDash Grocery & Essentials Credit
+    value: 20
+    cadence: monthly
+    reset_type: calendar_year
+    tracking_mode: manual
+    notes: "2x $10 monthly promos for groceries/essentials in DoorDash app. Can combine with other offers. Through 12/31/2027."
+
+  - slug: doordash-restaurant
+    name: DoorDash Restaurant Credit
+    value: 5
+    cadence: monthly
+    reset_type: calendar_year
+    tracking_mode: manual
+    notes: "$5 monthly promo for restaurant orders in DoorDash app. Through 12/31/2027."
+
+  - slug: apple-subscriptions
+    name: Apple TV+ & Apple Music
+    value: 288
+    cadence: annual
+    reset_type: calendar_year
+    tracking_mode: info
+    notes: "Complimentary subscriptions through 6/22/2027. Activate via Chase. ~$24/month value. Auto-renews."
+
+  - slug: global-entry
+    name: Global Entry/TSA PreCheck Credit
+    value: 120
+    cadence: rolling
+    reset_type: rolling_years
+    reset_years: 4
+    tracking_mode: auto
+    detection_rules:
+      credit_patterns:
+        - "Global Entry"
+        - "TSA PreCheck"
+      lookback_days: 60
+    notes: "Up to $120 every 4 years from last use"
