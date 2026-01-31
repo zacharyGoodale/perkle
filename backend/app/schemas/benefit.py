@@ -18,7 +18,7 @@ class BenefitStatusItem(BaseModel):
     amount_used: float
     amount_limit: float
     notes: str | None
-    muted: bool = False
+    hidden: bool = False
 
 
 class CardBenefitStatus(BaseModel):

@@ -48,7 +48,7 @@ class UserCardCreate(BaseModel):
     nickname: str | None = None
     card_anniversary: str | None = Field(
         None,
-        description="Card anniversary date (YYYY-MM-DD) for cardmember_year benefits"
+        description="Card anniversary date (MM-DD) for cardmember_year benefits"
     )
 
 
@@ -78,10 +78,10 @@ class UserCardResponse(BaseModel):
 
 
 class BenefitSettingUpdate(BaseModel):
-    """Update mute/notes for a benefit."""
+    """Update hidden/notes for a benefit."""
     
     benefit_slug: str
-    muted: bool | None = None
+    hidden: bool | None = None
     notes: str | None = None
 
 
@@ -91,10 +91,10 @@ class BenefitSettingResponse(BaseModel):
     id: str
     user_card_id: str
     benefit_slug: str
-    muted: bool
+    hidden: bool = Field(validation_alias="muted")
     notes: str | None
     
-    @field_validator("muted", mode="before")
+    @field_validator("hidden", mode="before")
     @classmethod
     def int_to_bool(cls, v: Any) -> bool:
         if isinstance(v, int):
@@ -103,3 +103,4 @@ class BenefitSettingResponse(BaseModel):
     
     class Config:
         from_attributes = True
+        populate_by_name = True

@@ -11,7 +11,8 @@ export default function Cards() {
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState<string | null>(null);
   const [showAnniversaryModal, setShowAnniversaryModal] = useState<CardConfig | null>(null);
-  const [anniversaryDate, setAnniversaryDate] = useState('');
+  const [anniversaryMonth, setAnniversaryMonth] = useState('');
+  const [anniversaryDay, setAnniversaryDay] = useState('');
 
   useEffect(() => {
     if (!token) return;
@@ -39,8 +40,8 @@ export default function Cards() {
     try {
       const newCard = await cards.add(token, cardConfig.id, undefined, anniversary);
       setMyCards([...myCards, newCard]);
-      setShowAnniversaryModal(null);
-      setAnniversaryDate('');
+      setShowAnniversaryModal(null); setAnniversaryMonth(''); setAnniversaryDay('');
+      setAnniversaryMonth(''); setAnniversaryDay('');
     } catch (err) {
       console.error(err);
     } finally {
@@ -88,7 +89,7 @@ export default function Cards() {
               <button 
                 onClick={() => {
                   setShowAnniversaryModal(null);
-                  setAnniversaryDate('');
+                  setAnniversaryMonth(''); setAnniversaryDay('');
                 }}
                 className="p-1 text-gray-400 hover:text-gray-600"
               >
@@ -99,23 +100,49 @@ export default function Cards() {
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 <Calendar className="w-4 h-4 inline mr-1" />
-                Card Anniversary Date
+                Card Anniversary (Month & Day)
               </label>
-              <input
-                type="date"
-                value={anniversaryDate}
-                onChange={(e) => setAnniversaryDate(e.target.value)}
-                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
+              <div className="flex gap-2">
+                <select
+                  value={anniversaryMonth}
+                  onChange={(e) => setAnniversaryMonth(e.target.value)}
+                  className="flex-1 p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Month</option>
+                  <option value="01">January</option>
+                  <option value="02">February</option>
+                  <option value="03">March</option>
+                  <option value="04">April</option>
+                  <option value="05">May</option>
+                  <option value="06">June</option>
+                  <option value="07">July</option>
+                  <option value="08">August</option>
+                  <option value="09">September</option>
+                  <option value="10">October</option>
+                  <option value="11">November</option>
+                  <option value="12">December</option>
+                </select>
+                <select
+                  value={anniversaryDay}
+                  onChange={(e) => setAnniversaryDay(e.target.value)}
+                  className="flex-1 p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Day</option>
+                  {Array.from({ length: 31 }, (_, i) => (
+                    <option key={i + 1} value={String(i + 1).padStart(2, '0')}>
+                      {i + 1}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <p className="text-xs text-gray-500 mt-2">
-                Enter the date you were approved or when your annual fee posts.
-                This enables renewal reminders and cardmember-year benefit tracking.
+                The day your annual fee posts or when you were approved.
               </p>
             </div>
 
             <div className="flex gap-2">
               <button
-                onClick={() => handleAddCard(showAnniversaryModal, anniversaryDate || undefined)}
+                onClick={() => handleAddCard(showAnniversaryModal, anniversaryMonth && anniversaryDay ? `${anniversaryMonth}-${anniversaryDay}` : undefined)}
                 disabled={adding === showAnniversaryModal.id}
                 className="flex-1 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
               >

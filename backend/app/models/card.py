@@ -41,7 +41,7 @@ class UserCard(Base):
     user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     card_config_id = Column(String(36), ForeignKey("card_configs.id"), nullable=False)
     nickname = Column(String(100))
-    card_anniversary = Column(String(10))  # YYYY-MM-DD for cardmember_year benefits
+    card_anniversary = Column(String(5))  # MM-DD for cardmember_year benefits
     active = Column(Integer, default=1)  # SQLite boolean
     added_at = Column(String(26), default=lambda: datetime.utcnow().isoformat())
     

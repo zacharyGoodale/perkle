@@ -201,7 +201,7 @@ def update_benefit_setting(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Update a benefit setting (mute/unmute, add notes)."""
+    """Update a benefit setting (hide/unhide, add notes)."""
     user_card = db.query(UserCard).filter(
         UserCard.id == user_card_id,
         UserCard.user_id == current_user.id,
@@ -228,9 +228,9 @@ def update_benefit_setting(
         db.add(setting)
     
     # Update fields
-    if setting_data.muted is not None:
-        setting.muted = 1 if setting_data.muted else 0
-        setting.muted_at = datetime.utcnow().isoformat() if setting_data.muted else None
+    if setting_data.hidden is not None:
+        setting.muted = 1 if setting_data.hidden else 0
+        setting.muted_at = datetime.utcnow().isoformat() if setting_data.hidden else None
     if setting_data.notes is not None:
         setting.notes = setting_data.notes
     

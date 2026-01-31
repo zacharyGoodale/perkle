@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { benefits, cards, type BenefitStatusResponse, type BenefitStatus } from '../lib/api';
-import { ArrowLeft, CheckCircle, Circle, Clock, AlertCircle, Info, VolumeX, Volume2, CreditCard, X, DollarSign, ExternalLink } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Circle, Clock, AlertCircle, Info, EyeOff, Eye, CreditCard, X, DollarSign, ExternalLink } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export default function CardDetail() {
@@ -12,7 +12,7 @@ export default function CardDetail() {
   const [data, setData] = useState<BenefitStatusResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [marking, setMarking] = useState<string | null>(null);
-  const [muting, setMuting] = useState<string | null>(null);
+  const [hiding, setHiding] = useState<string | null>(null);
   const [amountModal, setAmountModal] = useState<BenefitStatus | null>(null);
   const [customAmount, setCustomAmount] = useState('');
 
@@ -67,14 +67,14 @@ export default function CardDetail() {
     handleMarkUsed(benefit, amount);
   };
 
-  const handleToggleMute = async (benefit: BenefitStatus) => {
+  const handleToggleHidden = async (benefit: BenefitStatus) => {
     if (!token || !cardId) return;
-    setMuting(benefit.slug);
+    setHiding(benefit.slug);
 
     try {
       await cards.updateBenefitSetting(token, cardId, {
         benefit_slug: benefit.slug,
-        muted: !benefit.muted,
+        hidden: !benefit.hidden,
       });
       // Refresh data
       const updated = await benefits.getStatus(token);
@@ -82,7 +82,7 @@ export default function CardDetail() {
     } catch (err) {
       console.error(err);
     } finally {
-      setMuting(null);
+      setHiding(null);
     }
   };
 
@@ -124,12 +124,12 @@ export default function CardDetail() {
 
   const trackableBenefits = card?.benefits.filter(b => b.tracking_mode !== 'info') || [];
 
-  // Sort benefits: muted at bottom, then by status priority
+  // Sort benefits: hidden at bottom, then by status priority
   // Secondary sort by slug for stability
   const sortedBenefits = [...(card?.benefits || [])].sort((a, b) => {
-    // Muted benefits always go to the bottom
-    if (a.muted && !b.muted) return 1;
-    if (!a.muted && b.muted) return -1;
+    // Hidden benefits always go to the bottom
+    if (a.hidden && !b.hidden) return 1;
+    if (!a.hidden && b.hidden) return -1;
     
     const statusOrder = (status: string, trackingMode: string) => {
       if (trackingMode === 'info') return 4;
@@ -142,9 +142,9 @@ export default function CardDetail() {
     return a.slug.localeCompare(b.slug);
   });
   
-  // Check if there are muted benefits to show a divider
-  const hasMutedBenefits = sortedBenefits.some(b => b.muted);
-  const firstMutedIndex = sortedBenefits.findIndex(b => b.muted);
+  // Check if there are hidden benefits to show a divider
+  const hasHiddenBenefits = sortedBenefits.some(b => b.hidden);
+  const firstHiddenIndex = sortedBenefits.findIndex(b => b.hidden);
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -272,8 +272,8 @@ export default function CardDetail() {
       {/* Benefits List */}
       <div className="p-4 space-y-3">
         {sortedBenefits.map((benefit, index) => {
-          // Show divider before first muted benefit
-          const showMutedDivider = hasMutedBenefits && index === firstMutedIndex;
+          // Show divider before first hidden benefit
+          const showHiddenDivider = hasHiddenBenefits && index === firstHiddenIndex;
           const percentage = benefit.amount_limit > 0
             ? Math.min(100, (benefit.amount_used / benefit.amount_limit) * 100)
             : 0;
@@ -282,10 +282,10 @@ export default function CardDetail() {
           if (benefit.tracking_mode === 'info') {
             return (
               <React.Fragment key={benefit.slug}>
-                {showMutedDivider && (
+                {showHiddenDivider && (
                   <div className="text-xs text-gray-400 uppercase tracking-wide pt-2 pb-1 flex items-center gap-2">
-                    <VolumeX className="w-3 h-3" />
-                    Muted Benefits
+                    <EyeOff className="w-3 h-3" />
+                    Hidden Benefits
                   </div>
                 )}
                 <div className="bg-blue-50 rounded-xl p-4">
@@ -308,17 +308,17 @@ export default function CardDetail() {
 
           return (
             <React.Fragment key={benefit.slug}>
-              {showMutedDivider && (
+              {showHiddenDivider && (
                 <div className="text-xs text-gray-400 uppercase tracking-wide pt-2 pb-1 flex items-center gap-2">
-                  <VolumeX className="w-3 h-3" />
-                  Muted Benefits
+                  <EyeOff className="w-3 h-3" />
+                  Hidden Benefits
                 </div>
               )}
               <div
               className={cn(
                 "bg-white rounded-xl p-4",
                 benefit.status === 'expiring' && "ring-2 ring-orange-200",
-                benefit.muted && "opacity-60",
+                benefit.hidden && "opacity-60",
               )}
             >
               <div className="flex items-start gap-3">
@@ -332,19 +332,22 @@ export default function CardDetail() {
                         {benefit.reset_type === 'cardmember_year' && ' (card year)'}
                       </p>
                     </div>
-                    {/* Mute toggle */}
+                    {/* Hide toggle */}
                     <button
-                      onClick={() => handleToggleMute(benefit)}
-                      disabled={muting === benefit.slug}
-                      className="p-2 text-gray-400 hover:text-gray-600"
-                      title={benefit.muted ? 'Unmute benefit' : 'Mute benefit'}
+                      onClick={() => handleToggleHidden(benefit)}
+                      disabled={hiding === benefit.slug}
+                      className="group flex items-center gap-1 p-2 text-gray-400 hover:text-gray-600"
+                      title={benefit.hidden ? 'Show benefit' : 'Hide benefit'}
                     >
-                      {muting === benefit.slug ? (
+                      <span className="text-xs opacity-0 group-hover:opacity-100 transition-opacity">
+                        {benefit.hidden ? 'Unhide' : 'Hide'}
+                      </span>
+                      {hiding === benefit.slug ? (
                         <div className="w-5 h-5 animate-spin rounded-full border-2 border-gray-400 border-t-transparent" />
-                      ) : benefit.muted ? (
-                        <VolumeX className="w-5 h-5" />
+                      ) : benefit.hidden ? (
+                        <EyeOff className="w-5 h-5" />
                       ) : (
-                        <Volume2 className="w-5 h-5" />
+                        <Eye className="w-5 h-5" />
                       )}
                     </button>
                   </div>

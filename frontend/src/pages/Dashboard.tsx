@@ -135,7 +135,7 @@ export default function Dashboard() {
   // Calculate aggregate unused benefits across all cards
   const allUnusedBenefits = cardStatuses.flatMap(card => 
     card.benefits
-      .filter(b => b.tracking_mode !== 'info' && b.status !== 'used' && !b.muted)
+      .filter(b => b.tracking_mode !== 'info' && b.status !== 'used' && !b.hidden)
       .map(b => ({
         ...b,
         cardName: card.card_name,
@@ -145,8 +145,8 @@ export default function Dashboard() {
 
   const totalUnusedValue = allUnusedBenefits.reduce((sum, b) => sum + (b.value - b.amount_used), 0);
 
-  // Aggregate stats by cadence (excluding muted benefits)
-  const allBenefits = cardStatuses.flatMap(card => card.benefits.filter(b => b.tracking_mode !== 'info' && !b.muted));
+  // Aggregate stats by cadence (excluding hidden benefits)
+  const allBenefits = cardStatuses.flatMap(card => card.benefits.filter(b => b.tracking_mode !== 'info' && !b.hidden));
   const cadenceStats = {
     monthly: { used: 0, available: 0 },
     quarterly: { used: 0, available: 0 },

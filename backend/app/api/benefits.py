@@ -26,12 +26,12 @@ router = APIRouter(prefix="/benefits", tags=["benefits"])
 
 @router.get("/status", response_model=BenefitStatusResponse)
 def get_benefit_status(
-    include_muted: bool = False,
+    include_hidden: bool = False,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """Get current benefit status for all user's cards (dashboard view)."""
-    cards_status = get_benefit_status_for_user(db, current_user.id, include_muted=include_muted)
+    cards_status = get_benefit_status_for_user(db, current_user.id, include_hidden=include_hidden)
     
     # Calculate summary stats
     total_available = 0
@@ -107,7 +107,7 @@ def mark_benefit_used(
     
     card_anniversary = None
     if user_card.card_anniversary and reset_type == "cardmember_year":
-        card_anniversary = datetime.strptime(user_card.card_anniversary, "%Y-%m-%d").date()
+        card_anniversary = parse_anniversary_to_date(user_card.card_anniversary, date.today())
     
     period_start, period_end = get_period_boundaries(
         cadence=cadence,

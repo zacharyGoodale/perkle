@@ -11,6 +11,24 @@ from app.models.transaction import Transaction
 from app.services.benefit_periods import get_period_boundaries
 
 
+def parse_anniversary_to_date(anniversary_str: str, reference_date: date) -> date:
+    """Convert MM-DD or YYYY-MM-DD anniversary string to a date object.
+    
+    For MM-DD format, uses the reference year to construct a full date.
+    """
+    if not anniversary_str:
+        return None
+    
+    # Handle both old YYYY-MM-DD and new MM-DD formats
+    if len(anniversary_str) == 10:  # YYYY-MM-DD
+        return datetime.strptime(anniversary_str, "%Y-%m-%d").date()
+    elif len(anniversary_str) == 5:  # MM-DD
+        month, day = int(anniversary_str[:2]), int(anniversary_str[3:])
+        return date(reference_date.year, month, day)
+    else:
+        return None
+
+
 def detect_benefits_for_user(
     db: Session,
     user_id: str,
@@ -43,7 +61,7 @@ def detect_benefits_for_user(
         card_anniversary = None
         if user_card.card_anniversary:
             try:
-                card_anniversary = datetime.strptime(user_card.card_anniversary, "%Y-%m-%d").date()
+                card_anniversary = parse_anniversary_to_date(user_card.card_anniversary, date.today())
             except ValueError:
                 pass
         
@@ -202,7 +220,7 @@ def _record_benefit_usage(
 def get_benefit_status_for_user(
     db: Session,
     user_id: str,
-    include_muted: bool = False,
+    include_hidden: bool = False,
 ) -> list[dict]:
     """Get current benefit status for all user's cards.
     
@@ -216,12 +234,12 @@ def get_benefit_status_for_user(
     today = date.today()
     result = []
     
-    # Get all muted settings for this user
-    muted_settings = db.query(UserBenefitSettings).filter(
+    # Get all hidden settings for this user
+    hidden_settings = db.query(UserBenefitSettings).filter(
         UserBenefitSettings.user_id == user_id,
         UserBenefitSettings.muted == 1,
     ).all()
-    muted_map = {(s.user_card_id, s.benefit_slug): True for s in muted_settings}
+    hidden_map = {(s.user_card_id, s.benefit_slug): True for s in hidden_settings}
     
     for user_card in user_cards:
         card_config = user_card.card_config
@@ -231,7 +249,7 @@ def get_benefit_status_for_user(
         card_anniversary = None
         if user_card.card_anniversary:
             try:
-                card_anniversary = datetime.strptime(user_card.card_anniversary, "%Y-%m-%d").date()
+                card_anniversary = parse_anniversary_to_date(user_card.card_anniversary, date.today())
             except ValueError:
                 pass
         
@@ -258,9 +276,9 @@ def get_benefit_status_for_user(
         }
         
         for benefit in benefits:
-            # Check if muted
-            is_muted = (user_card.id, benefit["slug"]) in muted_map
-            if is_muted and not include_muted:
+            # Check if hidden
+            is_hidden = (user_card.id, benefit["slug"]) in hidden_map
+            if is_hidden and not include_hidden:
                 continue
             
             tracking_mode = benefit.get("tracking_mode", "manual")
@@ -314,7 +332,7 @@ def get_benefit_status_for_user(
                 "amount_used": period_record.amount_used if period_record else 0,
                 "amount_limit": benefit.get("value", 0),
                 "notes": benefit.get("notes"),
-                "muted": is_muted,
+                "hidden": is_hidden,
             })
         
         result.append(card_status)

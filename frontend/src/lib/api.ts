@@ -182,7 +182,7 @@ export interface BenefitStatus {
   amount_used: number;
   amount_limit: number;
   notes?: string;
-  muted: boolean;
+  hidden: boolean;
 }
 
 export interface CardBenefitStatus {
@@ -199,7 +199,7 @@ export interface CardBenefitStatus {
 
 export interface BenefitSettingUpdate {
   benefit_slug: string;
-  muted?: boolean;
+  hidden?: boolean;
   notes?: string;
 }
 
@@ -227,7 +227,7 @@ export interface DetectionResult {
 
 export const benefits = {
   getStatus: (token: string) =>
-    fetchApi<BenefitStatusResponse>('/benefits/status?include_muted=true', { token }),
+    fetchApi<BenefitStatusResponse>('/benefits/status?include_hidden=true', { token }),
   
   detect: (token: string) =>
     fetchApi<DetectionResult>('/benefits/detect', { token, method: 'POST' }),
