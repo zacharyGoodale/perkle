@@ -27,11 +27,9 @@ export default function Cards() {
       .finally(() => setLoading(false));
   }, [token]);
 
-  // Cards that need anniversary date (have cardmember_year benefits)
-  const needsAnniversary = (cardConfig: CardConfig) => {
-    return cardConfig.benefits.some(b => 
-      (b as any).reset_type === 'cardmember_year'
-    ) || ['chase-sapphire-reserve', 'venture-x'].includes(cardConfig.slug);
+  // All cards prompt for anniversary date so renewal warnings work
+  const needsAnniversary = (_cardConfig: CardConfig) => {
+    return true; // Always prompt for anniversary to enable renewal reminders
   };
 
   const handleAddCard = async (cardConfig: CardConfig, anniversary?: string) => {
@@ -110,8 +108,8 @@ export default function Cards() {
                 className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
               <p className="text-xs text-gray-500 mt-2">
-                This card has benefits that reset on your card anniversary (e.g., $300 travel credit).
                 Enter the date you were approved or when your annual fee posts.
+                This enables renewal reminders and cardmember-year benefit tracking.
               </p>
             </div>
 
