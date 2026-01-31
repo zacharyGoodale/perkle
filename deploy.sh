@@ -28,7 +28,7 @@ fi
 
 # Build and start containers
 echo "Building and starting Docker containers..."
-docker compose up -d --build
+docker-compose up -d --build
 echo "✓ Containers started"
 
 # Configure Tailscale serve (using port 8443 to avoid conflict with amuse-bouche on 443)
@@ -57,10 +57,10 @@ echo "  • Auto-restart on crash"
 echo "  • Auto-start on boot (via Docker daemon)"
 echo ""
 echo "Useful commands:"
-echo "  • View logs:     docker compose logs -f"
-echo "  • Stop:          docker compose down"
-echo "  • Restart:       docker compose restart"
-echo "  • Rebuild:       docker compose up -d --build"
+echo "  • View logs:     docker-compose logs -f"
+echo "  • Stop:          docker-compose down"
+echo "  • Restart:       docker-compose restart"
+echo "  • Rebuild:       docker-compose up -d --build"
 echo ""
 echo "Local access:     http://localhost"
 echo "Tailscale access: https://${HOSTNAME}:8443"
