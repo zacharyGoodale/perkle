@@ -26,11 +26,12 @@ router = APIRouter(prefix="/benefits", tags=["benefits"])
 
 @router.get("/status", response_model=BenefitStatusResponse)
 def get_benefit_status(
+    include_muted: bool = False,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """Get current benefit status for all user's cards (dashboard view)."""
-    cards_status = get_benefit_status_for_user(db, current_user.id)
+    cards_status = get_benefit_status_for_user(db, current_user.id, include_muted=include_muted)
     
     # Calculate summary stats
     total_available = 0

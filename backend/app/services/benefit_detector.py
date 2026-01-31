@@ -237,17 +237,20 @@ def get_benefit_status_for_user(
         
         # Calculate days until renewal (next anniversary date)
         days_until_renewal = None
+        next_renewal_date = None
         if card_anniversary:
             next_anniversary = date(today.year, card_anniversary.month, card_anniversary.day)
             if next_anniversary <= today:
                 next_anniversary = date(today.year + 1, card_anniversary.month, card_anniversary.day)
             days_until_renewal = (next_anniversary - today).days
+            next_renewal_date = next_anniversary.isoformat()
         
         card_status = {
             "user_card_id": user_card.id,
             "card_name": card_config.name,
             "card_slug": card_config.slug,
             "card_anniversary": user_card.card_anniversary,
+            "next_renewal_date": next_renewal_date,
             "annual_fee": card_config.annual_fee,
             "benefits_url": card_config.benefits_url,
             "days_until_renewal": days_until_renewal,

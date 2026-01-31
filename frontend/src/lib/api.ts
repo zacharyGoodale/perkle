@@ -20,6 +20,14 @@ async function fetchApi<T>(endpoint: string, options: FetchOptions = {}): Promis
     headers,
   });
   
+  // Handle 401 Unauthorized - clear tokens and redirect to login
+  if (response.status === 401) {
+    localStorage.removeItem('perkle_token');
+    localStorage.removeItem('perkle_refresh');
+    window.location.href = '/login';
+    throw new Error('Session expired');
+  }
+  
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'Request failed' }));
     throw new Error(error.detail || 'Request failed');
@@ -182,6 +190,7 @@ export interface CardBenefitStatus {
   card_name: string;
   card_slug: string;
   card_anniversary?: string;
+  next_renewal_date?: string;
   annual_fee: number;
   benefits_url?: string;
   days_until_renewal?: number;
@@ -218,7 +227,7 @@ export interface DetectionResult {
 
 export const benefits = {
   getStatus: (token: string) =>
-    fetchApi<BenefitStatusResponse>('/benefits/status', { token }),
+    fetchApi<BenefitStatusResponse>('/benefits/status?include_muted=true', { token }),
   
   detect: (token: string) =>
     fetchApi<DetectionResult>('/benefits/detect', { token, method: 'POST' }),

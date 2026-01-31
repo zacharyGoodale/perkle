@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { benefits, cards, type BenefitStatusResponse, type BenefitStatus } from '../lib/api';
@@ -124,9 +124,13 @@ export default function CardDetail() {
 
   const trackableBenefits = card?.benefits.filter(b => b.tracking_mode !== 'info') || [];
 
-  // Sort benefits: unused/expiring first, then partial, then used, then info
+  // Sort benefits: muted at bottom, then by status priority
   // Secondary sort by slug for stability
   const sortedBenefits = [...(card?.benefits || [])].sort((a, b) => {
+    // Muted benefits always go to the bottom
+    if (a.muted && !b.muted) return 1;
+    if (!a.muted && b.muted) return -1;
+    
     const statusOrder = (status: string, trackingMode: string) => {
       if (trackingMode === 'info') return 4;
       if (status === 'used') return 3;
@@ -137,6 +141,10 @@ export default function CardDetail() {
     if (orderDiff !== 0) return orderDiff;
     return a.slug.localeCompare(b.slug);
   });
+  
+  // Check if there are muted benefits to show a divider
+  const hasMutedBenefits = sortedBenefits.some(b => b.muted);
+  const firstMutedIndex = sortedBenefits.findIndex(b => b.muted);
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -255,7 +263,7 @@ export default function CardDetail() {
               card.days_until_renewal <= 30 ? "text-amber-600" : "text-gray-500"
             )}>
               ${card.annual_fee} in {card.days_until_renewal} days
-              {card.card_anniversary && ` (${card.card_anniversary})`}
+              {card.next_renewal_date && ` (${card.next_renewal_date})`}
             </p>
           </div>
         </div>
@@ -263,7 +271,9 @@ export default function CardDetail() {
 
       {/* Benefits List */}
       <div className="p-4 space-y-3">
-        {sortedBenefits.map((benefit) => {
+        {sortedBenefits.map((benefit, index) => {
+          // Show divider before first muted benefit
+          const showMutedDivider = hasMutedBenefits && index === firstMutedIndex;
           const percentage = benefit.amount_limit > 0
             ? Math.min(100, (benefit.amount_used / benefit.amount_limit) * 100)
             : 0;
@@ -271,7 +281,14 @@ export default function CardDetail() {
           // Info-only benefits (like anniversary bonus)
           if (benefit.tracking_mode === 'info') {
             return (
-              <div key={benefit.slug} className="bg-blue-50 rounded-xl p-4">
+              <React.Fragment key={benefit.slug}>
+                {showMutedDivider && (
+                  <div className="text-xs text-gray-400 uppercase tracking-wide pt-2 pb-1 flex items-center gap-2">
+                    <VolumeX className="w-3 h-3" />
+                    Muted Benefits
+                  </div>
+                )}
+                <div className="bg-blue-50 rounded-xl p-4">
                 <div className="flex items-start gap-3">
                   {statusIcon('info')}
                   <div className="flex-1">
@@ -285,12 +302,19 @@ export default function CardDetail() {
                   </div>
                 </div>
               </div>
+              </React.Fragment>
             );
           }
 
           return (
-            <div
-              key={benefit.slug}
+            <React.Fragment key={benefit.slug}>
+              {showMutedDivider && (
+                <div className="text-xs text-gray-400 uppercase tracking-wide pt-2 pb-1 flex items-center gap-2">
+                  <VolumeX className="w-3 h-3" />
+                  Muted Benefits
+                </div>
+              )}
+              <div
               className={cn(
                 "bg-white rounded-xl p-4",
                 benefit.status === 'expiring' && "ring-2 ring-orange-200",
@@ -370,6 +394,7 @@ export default function CardDetail() {
                 </div>
               </div>
             </div>
+            </React.Fragment>
           );
         })}
       </div>

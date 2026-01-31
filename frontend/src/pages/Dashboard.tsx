@@ -145,6 +145,26 @@ export default function Dashboard() {
 
   const totalUnusedValue = allUnusedBenefits.reduce((sum, b) => sum + (b.value - b.amount_used), 0);
 
+  // Aggregate stats by cadence (excluding muted benefits)
+  const allBenefits = cardStatuses.flatMap(card => card.benefits.filter(b => b.tracking_mode !== 'info' && !b.muted));
+  const cadenceStats = {
+    monthly: { used: 0, available: 0 },
+    quarterly: { used: 0, available: 0 },
+    'semi-annual': { used: 0, available: 0 },
+    annual: { used: 0, available: 0 },
+  };
+  
+  for (const b of allBenefits) {
+    const cadence = b.cadence as keyof typeof cadenceStats;
+    if (cadenceStats[cadence]) {
+      cadenceStats[cadence].used += b.amount_used;
+      cadenceStats[cadence].available += b.status !== 'used' ? (b.amount_limit - b.amount_used) : 0;
+    }
+  }
+  
+  // Filter to only show cadences with benefits
+  const activeCadences = Object.entries(cadenceStats).filter(([_, stats]) => stats.used > 0 || stats.available > 0);
+
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
@@ -155,23 +175,61 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* Summary */}
+      {/* Summary by Cadence */}
       <div className="bg-gradient-to-br from-blue-600 to-blue-700 text-white p-6 mx-4 mt-4 rounded-2xl">
-        <p className="text-blue-100 text-sm">This period</p>
-        <p className="text-3xl font-bold mt-1">${summary.total_used_value.toFixed(0)} used</p>
-        <div className="flex gap-6 mt-4 text-sm">
-          <div>
-            <p className="text-blue-200">Available</p>
-            <p className="font-semibold">${summary.total_available_value.toFixed(0)}</p>
-          </div>
-          {summary.expiring_soon_count > 0 && (
-            <div>
-              <p className="text-orange-300">Expiring soon</p>
-              <p className="font-semibold">{summary.expiring_soon_count} benefits</p>
-            </div>
-          )}
+        <p className="text-blue-100 text-sm mb-3">Benefits Used</p>
+        
+        {/* Cadence breakdown */}
+        <div className="space-y-3">
+          {activeCadences.map(([cadence, stats]) => {
+            const total = stats.used + stats.available;
+            const pct = total > 0 ? (stats.used / total) * 100 : 0;
+            return (
+              <div key={cadence}>
+                <div className="flex items-center justify-between text-sm mb-1">
+                  <span className="text-blue-100 capitalize">{cadence.replace('-', ' ')}</span>
+                  <span className="font-medium">
+                    ${stats.used.toFixed(0)} / ${total.toFixed(0)}
+                  </span>
+                </div>
+                <div className="h-2 bg-blue-800 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-white rounded-full transition-all"
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
         </div>
+        
+        {summary.expiring_soon_count > 0 && (
+          <div className="mt-4 pt-3 border-t border-blue-500">
+            <p className="text-orange-300 text-sm">
+              ⚠️ {summary.expiring_soon_count} benefit{summary.expiring_soon_count > 1 ? 's' : ''} expiring soon
+            </p>
+          </div>
+        )}
       </div>
+
+      {/* Renewal Warnings */}
+      {cardStatuses.some(c => c.days_until_renewal && c.days_until_renewal <= 30) && (
+        <div className="mx-4 mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+          <div className="flex items-center gap-2 text-amber-800">
+            <CreditCard className="w-5 h-5" />
+            <span className="font-medium">Upcoming Renewals</span>
+          </div>
+          <div className="mt-2 space-y-1">
+            {cardStatuses
+              .filter(c => c.days_until_renewal && c.days_until_renewal <= 30)
+              .map(c => (
+                <p key={c.user_card_id} className="text-sm text-amber-700">
+                  {c.card_name}: ${c.annual_fee} in {c.days_until_renewal} days
+                </p>
+              ))}
+          </div>
+        </div>
+      )}
 
       {/* Aggregate Unused Benefits */}
       {allUnusedBenefits.length > 0 && (
@@ -214,25 +272,6 @@ export default function Dashboard() {
                 +{allUnusedBenefits.length - 8} more benefits
               </p>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* Renewal Warnings */}
-      {cardStatuses.some(c => c.days_until_renewal && c.days_until_renewal <= 30) && (
-        <div className="mx-4 mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
-          <div className="flex items-center gap-2 text-amber-800">
-            <CreditCard className="w-5 h-5" />
-            <span className="font-medium">Upcoming Renewals</span>
-          </div>
-          <div className="mt-2 space-y-1">
-            {cardStatuses
-              .filter(c => c.days_until_renewal && c.days_until_renewal <= 30)
-              .map(c => (
-                <p key={c.user_card_id} className="text-sm text-amber-700">
-                  {c.card_name}: ${c.annual_fee} in {c.days_until_renewal} days
-                </p>
-              ))}
           </div>
         </div>
       )}
