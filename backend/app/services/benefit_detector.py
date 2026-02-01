@@ -67,13 +67,6 @@ def detect_benefits_for_user(
             except ValueError:
                 pass
         
-        # Get all credit transactions for this card
-        credits = db.query(Transaction).filter(
-            Transaction.user_id == user_id,
-            Transaction.card_config_id == card_config.id,
-            Transaction.amount < 0,  # Credits are negative
-        ).all()
-        
         for benefit in benefits:
             if benefit.get("tracking_mode") != "auto":
                 continue
@@ -83,6 +76,14 @@ def detect_benefits_for_user(
             
             if not credit_patterns:
                 continue
+
+            # Get unassociated credit transactions for this card
+            credits = db.query(Transaction).filter(
+                Transaction.user_id == user_id,
+                Transaction.card_config_id == card_config.id,
+                Transaction.amount < 0,  # Credits are negative
+                Transaction.benefit_slug.is_(None),
+            ).all()
 
             cadence = benefit.get("cadence", "monthly")
             reset_type = benefit.get("reset_type")
@@ -96,6 +97,8 @@ def detect_benefits_for_user(
 
             # Find matching credit transactions
             for txn in credits:
+                if txn.benefit_slug:
+                    continue
                 txn_date = _parse_transaction_date(txn.date)
                 if not txn_date:
                     continue
@@ -125,9 +128,6 @@ def detect_benefits_for_user(
                             "transaction": txn.name,
                         })
                         
-                        # Update transaction with benefit slug
-                        txn.benefit_slug = benefit["slug"]
-    
     db.commit()
     
     return {
@@ -171,6 +171,9 @@ def _record_benefit_usage(
     
     Returns the BenefitPeriod if newly recorded, None if already exists.
     """
+    if transaction.benefit_slug:
+        return None
+
     # Ensure period boundaries align with current benefit cadence.
     if not period_start or not period_end:
         cadence = benefit.get("cadence", "monthly")
@@ -202,6 +205,7 @@ def _record_benefit_usage(
         if existing.amount_used >= benefit_value and not existing.completed:
             existing.completed = 1
             existing.completed_at = datetime.utcnow().isoformat()
+        transaction.benefit_slug = benefit["slug"]
         return None  # Not a new detection, just an update
     
     # Check if we already created this period in this run (not yet in DB)
@@ -218,6 +222,7 @@ def _record_benefit_usage(
                 if obj.amount_used >= benefit_value and not obj.completed:
                     obj.completed = 1
                     obj.completed_at = datetime.utcnow().isoformat()
+                transaction.benefit_slug = benefit["slug"]
                 return None
         return None
     
@@ -237,6 +242,7 @@ def _record_benefit_usage(
         completed_at=datetime.utcnow().isoformat() if txn_amount >= benefit_value else None,
     )
     db.add(benefit_period)
+    transaction.benefit_slug = benefit["slug"]
     
     return benefit_period
 
