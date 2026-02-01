@@ -1,18 +1,63 @@
 const API_BASE = '/api';
+const ACCESS_TOKEN_KEY = 'perkle_token';
+const REFRESH_TOKEN_KEY = 'perkle_refresh';
+// TODO(auth): Move refresh tokens to HttpOnly cookies and keep access tokens in memory only.
 
 interface FetchOptions extends RequestInit {
   token?: string;
+  retryOnUnauthorized?: boolean;
+}
+
+interface RefreshResponse {
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
+}
+
+function getStoredToken(): string | null {
+  return localStorage.getItem(ACCESS_TOKEN_KEY);
+}
+
+function setStoredTokens(tokens: RefreshResponse) {
+  localStorage.setItem(ACCESS_TOKEN_KEY, tokens.access_token);
+  localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refresh_token);
+}
+
+function clearStoredTokens() {
+  localStorage.removeItem(ACCESS_TOKEN_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
+}
+
+async function refreshAccessToken(): Promise<RefreshResponse | null> {
+  const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+  if (!refreshToken) {
+    return null;
+  }
+
+  const response = await fetch(`${API_BASE}/auth/refresh`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refresh_token: refreshToken }),
+  });
+
+  if (!response.ok) {
+    return null;
+  }
+
+  return response.json();
 }
 
 async function fetchApi<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
-  const { token, ...fetchOptions } = options;
+  const { token, retryOnUnauthorized = true, ...fetchOptions } = options;
+  const storedToken = getStoredToken();
+  const authToken = storedToken ?? token;
   
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
   
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
   }
   
   const response = await fetch(`${API_BASE}${endpoint}`, {
@@ -20,10 +65,19 @@ async function fetchApi<T>(endpoint: string, options: FetchOptions = {}): Promis
     headers,
   });
   
-  // Handle 401 Unauthorized - clear tokens and redirect to login
-  if (response.status === 401) {
-    localStorage.removeItem('perkle_token');
-    localStorage.removeItem('perkle_refresh');
+  // Handle 401 Unauthorized - attempt refresh once before logging out
+  if (response.status === 401 && retryOnUnauthorized) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed?.access_token) {
+      setStoredTokens(refreshed);
+      return fetchApi<T>(endpoint, {
+        ...fetchOptions,
+        token: refreshed.access_token,
+        retryOnUnauthorized: false,
+      });
+    }
+
+    clearStoredTokens();
     window.location.href = '/login';
     throw new Error('Session expired');
   }
@@ -73,9 +127,15 @@ export const auth = {
     fetchApi<UserResponse>('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
   
   refresh: (refreshToken: string) =>
-    fetchApi<TokenResponse>('/auth/refresh', { 
+    fetch(`${API_BASE}/auth/refresh`, { 
       method: 'POST', 
-      body: JSON.stringify({ refresh_token: refreshToken }) 
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    }).then(async response => {
+      if (!response.ok) {
+        throw new Error('Refresh failed');
+      }
+      return response.json() as Promise<TokenResponse>;
     }),
 };
 
@@ -149,14 +209,26 @@ export interface UploadResult {
 
 export const transactions = {
   upload: async (token: string, file: File): Promise<UploadResult> => {
+    const storedToken = getStoredToken();
+    const authToken = storedToken ?? token;
     const formData = new FormData();
     formData.append('file', file);
     
-    const response = await fetch(`${API_BASE}/transactions/upload`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}` },
-      body: formData,
-    });
+    const sendRequest = async (accessToken: string) =>
+      fetch(`${API_BASE}/transactions/upload`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${accessToken}` },
+        body: formData,
+      });
+    
+    let response = await sendRequest(authToken ?? '');
+    if (response.status === 401) {
+      const refreshed = await refreshAccessToken();
+      if (refreshed?.access_token) {
+        setStoredTokens(refreshed);
+        response = await sendRequest(refreshed.access_token);
+      }
+    }
     
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: 'Upload failed' }));
