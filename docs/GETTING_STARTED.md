@@ -131,7 +131,7 @@ Your account doesn't exist. Click "Create an account" to register.
 
 ### Benefits not auto-detecting
 - Check that the credit transaction name matches patterns in the card config
-- Verify the transaction date is within the lookback window
+- Verify the transaction date falls within the current benefit period
 - Run benefit detection manually from the Upload page
 
 ### Database reset needed

@@ -53,6 +53,8 @@ def detect_benefits_for_user(
     # Track periods created in this run to avoid duplicates
     created_periods: set[tuple] = set()  # (user_card_id, benefit_slug, period_start)
     
+    today = date.today()
+
     for user_card in user_cards:
         card_config = user_card.card_config
         benefits = json.loads(card_config.benefits)
@@ -78,13 +80,27 @@ def detect_benefits_for_user(
                 
             detection_rules = benefit.get("detection_rules", {})
             credit_patterns = detection_rules.get("credit_patterns", [])
-            lookback_days = detection_rules.get("lookback_days", 14)
             
             if not credit_patterns:
                 continue
-            
+
+            cadence = benefit.get("cadence", "monthly")
+            reset_type = benefit.get("reset_type")
+            effective_anniversary = card_anniversary if reset_type == "cardmember_year" else None
+            period_start, period_end = get_period_boundaries(
+                cadence=cadence,
+                reference_date=today,
+                card_anniversary=effective_anniversary,
+                reset_type=reset_type,
+            )
+
             # Find matching credit transactions
             for txn in credits:
+                txn_date = _parse_transaction_date(txn.date)
+                if not txn_date:
+                    continue
+                if txn_date < period_start or txn_date > period_end:
+                    continue
                 if _matches_patterns(txn.name, credit_patterns):
                     # Found a matching credit - create/update benefit period
                     result = _record_benefit_usage(
@@ -93,7 +109,10 @@ def detect_benefits_for_user(
                         benefit=benefit,
                         transaction=txn,
                         card_anniversary=card_anniversary,
-                        lookback_days=lookback_days,
+                        reset_type=reset_type,
+                        txn_date=txn_date,
+                        period_start=period_start,
+                        period_end=period_end,
                         created_periods=created_periods,
                     )
                     if result:
@@ -128,36 +147,41 @@ def _matches_patterns(text: str, patterns: list[str]) -> bool:
     return False
 
 
+def _parse_transaction_date(date_str: str) -> date | None:
+    """Parse a transaction date string into a date object."""
+    try:
+        return datetime.strptime(date_str, "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+
 def _record_benefit_usage(
     db: Session,
     user_card: UserCard,
     benefit: dict,
     transaction: Transaction,
     card_anniversary: date | None,
-    lookback_days: int,
+    reset_type: str | None,
+    txn_date: date,
+    period_start: date,
+    period_end: date,
     created_periods: set[tuple],
 ) -> BenefitPeriod | None:
     """Record benefit usage, creating or updating a BenefitPeriod.
     
     Returns the BenefitPeriod if newly recorded, None if already exists.
     """
-    # Determine the effective date (for period calculation)
-    # Use transaction date, but could look back for qualifying spend
-    txn_date = datetime.strptime(transaction.date, "%Y-%m-%d").date()
-    
-    # Calculate period boundaries
-    cadence = benefit.get("cadence", "monthly")
-    reset_type = benefit.get("reset_type")
-    
-    # For cardmember_year, use card anniversary
-    effective_anniversary = card_anniversary if reset_type == "cardmember_year" else None
-    
-    period_start, period_end = get_period_boundaries(
-        cadence=cadence,
-        reference_date=txn_date,
-        card_anniversary=effective_anniversary,
-    )
-    
+    # Ensure period boundaries align with current benefit cadence.
+    if not period_start or not period_end:
+        cadence = benefit.get("cadence", "monthly")
+        effective_anniversary = card_anniversary if reset_type == "cardmember_year" else None
+        period_start, period_end = get_period_boundaries(
+            cadence=cadence,
+            reference_date=txn_date,
+            card_anniversary=effective_anniversary,
+            reset_type=reset_type,
+        )
+
     # Create period key for tracking
     period_key = (user_card.id, benefit["slug"], period_start.isoformat())
     txn_amount = abs(transaction.amount)
