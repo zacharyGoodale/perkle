@@ -72,6 +72,7 @@ cd perkle
 
 # Create environment file
 echo "SECRET_KEY=$(openssl rand -hex 32)" > .env
+echo "DATABASE_KEY=$(openssl rand -hex 32)" >> .env
 
 # Build and run
 docker compose up -d --build
@@ -103,7 +104,8 @@ docker compose up -d --build
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `SECRET_KEY` | JWT signing key | `changeme-in-production` |
-| `DATABASE_URL` | SQLite path | `sqlite:///data/perkle.db` |
+| `DATABASE_URL` | SQLite path | `sqlite+pysqlcipher:///data/perkle.db` |
+| `DATABASE_KEY` | SQLCipher encryption key (required) | (empty) |
 
 ### Adding Cards
 
