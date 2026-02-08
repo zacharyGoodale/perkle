@@ -6,6 +6,9 @@ from datetime import date
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+os.environ.setdefault("DATABASE_KEY", "test-key")
+os.environ.setdefault("DATABASE_URL", "sqlite:///./data/perkle.db")
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from app.database import Base
