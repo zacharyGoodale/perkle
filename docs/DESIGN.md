@@ -241,7 +241,8 @@ services:
       - ./data:/app/data
     environment:
       - SECRET_KEY=${SECRET_KEY}
-      - DATABASE_URL=sqlite:///data/perkle.db
+      - DATABASE_URL=sqlite+pysqlcipher:///data/perkle.db
+      - DATABASE_KEY=${DATABASE_KEY}
 
   frontend:
     build: ./frontend

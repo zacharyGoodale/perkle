@@ -48,7 +48,7 @@ See [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) for full setup instructio
 
 ## Tech Stack
 
-- **Backend**: Python 3.12 + FastAPI + SQLAlchemy + SQLite
+- **Backend**: Python 3.12 + FastAPI + SQLAlchemy + SQLCipher (SQLite)
 - **Frontend**: React + Vite + TailwindCSS v4
 - **Deployment**: Docker Compose + Tailscale
 

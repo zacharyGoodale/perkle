@@ -16,6 +16,16 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
+# Select Docker Compose command (v2 preferred, v1 fallback)
+if docker compose version >/dev/null 2>&1; then
+    COMPOSE_CMD=(docker compose)
+elif command -v docker-compose >/dev/null 2>&1; then
+    COMPOSE_CMD=(docker-compose)
+else
+    echo "❌ Docker Compose is required but not installed."
+    exit 1
+fi
+
 # Create data directory
 mkdir -p "$PROJECT_DIR/data"
 
@@ -23,12 +33,23 @@ mkdir -p "$PROJECT_DIR/data"
 if [ ! -f "$PROJECT_DIR/.env" ]; then
     echo "Creating .env file..."
     echo "SECRET_KEY=$(openssl rand -hex 32)" > "$PROJECT_DIR/.env"
-    echo "✓ Created .env with secure secret key"
+    echo "DATABASE_KEY=$(openssl rand -hex 32)" >> "$PROJECT_DIR/.env"
+    echo "✓ Created .env with secure secret and database keys"
+fi
+
+# Ensure required keys exist for existing .env files
+if ! grep -q '^SECRET_KEY=' "$PROJECT_DIR/.env"; then
+    echo "SECRET_KEY=$(openssl rand -hex 32)" >> "$PROJECT_DIR/.env"
+    echo "✓ Added missing SECRET_KEY to .env"
+fi
+if ! grep -q '^DATABASE_KEY=' "$PROJECT_DIR/.env"; then
+    echo "DATABASE_KEY=$(openssl rand -hex 32)" >> "$PROJECT_DIR/.env"
+    echo "✓ Added missing DATABASE_KEY to .env"
 fi
 
 # Build and start containers
 echo "Building and starting Docker containers..."
-docker-compose up -d --build
+"${COMPOSE_CMD[@]}" up -d --build
 echo "✓ Containers started"
 
 # Configure Tailscale serve (using port 8443 to avoid conflict with amuse-bouche on 443)
@@ -57,10 +78,10 @@ echo "  • Auto-restart on crash"
 echo "  • Auto-start on boot (via Docker daemon)"
 echo ""
 echo "Useful commands:"
-echo "  • View logs:     docker-compose logs -f"
-echo "  • Stop:          docker-compose down"
-echo "  • Restart:       docker-compose restart"
-echo "  • Rebuild:       docker-compose up -d --build"
+echo "  • View logs:     ${COMPOSE_CMD[*]} logs -f"
+echo "  • Stop:          ${COMPOSE_CMD[*]} down"
+echo "  • Restart:       ${COMPOSE_CMD[*]} restart"
+echo "  • Rebuild:       ${COMPOSE_CMD[*]} up -d --build"
 echo ""
 echo "Local access:     http://localhost"
 echo "Tailscale access: https://${HOSTNAME}:8443"

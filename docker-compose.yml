@@ -6,7 +6,7 @@ services:
     environment:
       - SECRET_KEY=${SECRET_KEY:-changeme-in-production}
       - DATABASE_URL=sqlite+pysqlcipher:///data/perkle.db
-      - DATABASE_KEY=${DATABASE_KEY}
+      - DATABASE_KEY=${DATABASE_KEY:?DATABASE_KEY must be set}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]

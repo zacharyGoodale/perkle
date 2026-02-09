@@ -36,3 +36,31 @@ def test_sqlcipher_import_failure_fails_closed(monkeypatch):
 
     with pytest.raises(RuntimeError, match="pysqlcipher3 is required"):
         reload_database_module()
+
+
+def test_build_sqlcipher_url_injects_encoded_password(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "sqlite:///./data/perkle.db")
+    monkeypatch.setenv("DATABASE_KEY", "test-key")
+
+    database_module = reload_database_module()
+    rewritten_url = database_module._build_sqlcipher_url(
+        "sqlite+pysqlcipher:///data/perkle.db?kdf_iter=64000",
+        "test/key with space",
+    )
+
+    assert rewritten_url == (
+        "sqlite+pysqlcipher://:test%2Fkey%20with%20space@/data/perkle.db?kdf_iter=64000"
+    )
+
+
+def test_build_sqlcipher_url_preserves_existing_password(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "sqlite:///./data/perkle.db")
+    monkeypatch.setenv("DATABASE_KEY", "test-key")
+
+    database_module = reload_database_module()
+    rewritten_url = database_module._build_sqlcipher_url(
+        "sqlite+pysqlcipher://:already-set@/data/perkle.db",
+        "new-key",
+    )
+
+    assert rewritten_url == "sqlite+pysqlcipher://:already-set@/data/perkle.db"

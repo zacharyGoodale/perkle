@@ -59,13 +59,15 @@ cd perkle
 ```
 
 The script will:
-1. Generate a secure `SECRET_KEY` in `.env`
+1. Generate secure `SECRET_KEY` and `DATABASE_KEY` values in `.env`
 2. Build and start Docker containers
 3. Configure Tailscale to serve on port 8443
 
 Access at `https://<your-tailscale-hostname>:8443`
 
 ### Manual Deploy
+
+Use `docker compose` for Docker Compose v2. If your system only has v1, replace commands with `docker-compose`.
 
 ```bash
 cd perkle
@@ -104,7 +106,7 @@ docker compose up -d --build
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `SECRET_KEY` | JWT signing key | `changeme-in-production` |
-| `DATABASE_URL` | SQLite path | `sqlite+pysqlcipher:///data/perkle.db` |
+| `DATABASE_URL` | SQLCipher SQLite path | `sqlite+pysqlcipher:///data/perkle.db` |
 | `DATABASE_KEY` | SQLCipher encryption key (required) | (empty) |
 
 ### Adding Cards
@@ -137,7 +139,7 @@ Your account doesn't exist. Click "Create an account" to register.
 - Run benefit detection manually from the Upload page
 
 ### Database reset needed
-Delete `backend/data/perkle.db` (or `./data/perkle.db` in Docker) and restart.
+Delete `backend/data/perkle.db` for local backend runs, or `data/perkle.db` for Docker deployments, then restart.
 
 ## Warp Environment (Future)
 

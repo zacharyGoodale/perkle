@@ -1,121 +1,77 @@
 # SQLCipher Migration Plan (Docker on Linux)
 
 ## Goals
-- Encrypt the SQLite database (`perkle.db`) at rest using SQLCipher.
-- Preserve existing user data if feasible.
-- Document operational steps for Docker-based deployments on Linux.
-- Add testing steps to validate data integrity and encryption.
+- Encrypt `data/perkle.db` at rest with SQLCipher.
+- Preserve all existing application data.
+- Keep rollback straightforward.
 
-## Current State (Summary)
-- Backend uses SQLite via SQLAlchemy with a file path `./data/perkle.db`.
-- Docker Compose runs the stack and stores the DB on a mounted volume.
+## Current Runtime Assumptions
+- Docker volume mount is `./data:/app/data`.
+- Backend DB URL is `sqlite+pysqlcipher:///data/perkle.db`.
+- Encryption key is provided with `DATABASE_KEY`.
+- `DATABASE_KEY` is required at startup.
 
-## Proposed Approach
-Use SQLCipher to encrypt the SQLite database file at rest while keeping the existing schema and application logic intact. This requires:
-- Installing SQLCipher libraries in the backend container.
-- Switching the SQLAlchemy driver to a SQLCipher-compatible driver.
-- Setting a database encryption key via environment variables.
-- Migrating existing plaintext SQLite data to an encrypted SQLCipher database file.
+## Recommended Migration Method
+Use SQLCipher's `ATTACH ... KEY` + `sqlcipher_export(...)` flow. This avoids fragile dump/reimport edge cases and preserves schema, indexes, and data in one step.
 
-## Implementation Plan
+## One-Time Migration Procedure
+Use `docker compose` if available, otherwise `docker-compose`.
 
-### 1) Dependencies & Driver
-- Install SQLCipher in the backend Docker image.
-  - For Debian/Ubuntu base images: install `sqlcipher` and `libsqlcipher-dev`.
-  - For Alpine: install `sqlcipher` and `sqlcipher-dev`.
-- Add a SQLCipher-capable driver (e.g., `pysqlcipher3`).
-  - Update backend dependencies to include `pysqlcipher3` (or a supported SQLCipher SQLAlchemy dialect).
-
-### 2) SQLAlchemy URL Updates
-Update the database URL to use a SQLCipher-compatible scheme:
-- Example: `sqlite+pysqlcipher:///./data/perkle.db`
-- Add a new env var for the encryption key, e.g. `DATABASE_KEY`.
-
-### 3) Key Management
-- Store `DATABASE_KEY` as a Docker secret or env var in the deployment.
-- Ensure the key is not committed to Git and is provided at runtime.
-- Rotate keys by decrypting + re-encrypting the DB in a controlled maintenance window.
-
-### 4) Database Initialization
-- Modify DB initialization to apply the key on each connection:
-  - For SQLCipher, execute `PRAGMA key = '...';` on connect.
-  - Use SQLAlchemy event listeners to apply the key.
-
-### 5) Migration Strategy (Preserve Data)
-**Preferred (preserve data):**
-1. Stop the backend service to avoid DB writes.
-2. Backup plaintext DB:
-   - `cp backend/data/perkle.db backend/data/perkle.db.bak`
-3. Use `sqlcipher` tool to export plaintext and import encrypted:
-   - Open plaintext DB with standard `sqlite3` to dump SQL.
-   - Create new encrypted DB using `sqlcipher` and import the dump.
-4. Replace `perkle.db` with encrypted version.
-5. Start backend and run a quick sanity query.
-
-**Alternative (drop data if migration too complex):**
-- Stop backend.
-- Remove `backend/data/perkle.db`.
-- Start backend to recreate schema.
-- Notify users that data has been reset.
-
-### 6) Docker Compose Updates (Linux)
-- Add `DATABASE_KEY` to environment.
-- Ensure volume mount path is unchanged so encrypted DB persists.
-- Confirm container has access to SQLCipher libs.
-
-### 7) Observability
-- Add startup logs indicating DB encryption is enabled (do not log the key).
-- Add health check to verify `SELECT count(*) FROM users` works after startup.
-
-## Migration Steps (Detailed)
-
-### A. One-time migration script (manual run)
-1. Stop services:
+1. Stop writes:
    - `docker compose down`
-2. Backup DB:
-   - `cp backend/data/perkle.db backend/data/perkle.db.bak`
-3. Export plaintext DB:
-   - `sqlite3 backend/data/perkle.db ".dump" > /tmp/perkle_plain.sql`
-4. Create encrypted DB:
-   - `sqlcipher backend/data/perkle.db`
-   - `PRAGMA key='${DATABASE_KEY}';`
-   - `.read /tmp/perkle_plain.sql`
-   - `PRAGMA cipher_integrity_check;`
-   - `.exit`
-5. Restart services:
+2. Backup plaintext DB:
+   - `cp data/perkle.db data/perkle.db.bak.$(date +%Y%m%d-%H%M%S)`
+3. Export plaintext into encrypted DB:
+   - Run inside backend image so SQLCipher tooling is guaranteed:
+```bash
+docker compose run --rm backend sh -lc '
+set -euo pipefail
+test -n "$DATABASE_KEY"
+rm -f /app/data/perkle.encrypted.db
+sqlcipher /app/data/perkle.db <<SQL
+ATTACH DATABASE "/app/data/perkle.encrypted.db" AS encrypted KEY "$DATABASE_KEY";
+SELECT sqlcipher_export('"'"'encrypted'"'"');
+DETACH DATABASE encrypted;
+.exit
+SQL
+'
+```
+4. Validate encrypted DB:
+```bash
+docker compose run --rm backend sh -lc '
+set -euo pipefail
+sqlcipher /app/data/perkle.encrypted.db <<SQL
+PRAGMA key = "$DATABASE_KEY";
+PRAGMA cipher_integrity_check;
+SELECT count(*) FROM users;
+SELECT count(*) FROM transactions;
+SELECT count(*) FROM benefit_periods;
+.exit
+SQL
+'
+```
+5. Cut over:
+   - `mv data/perkle.db data/perkle.db.precutover.$(date +%Y%m%d-%H%M%S)`
+   - `mv data/perkle.encrypted.db data/perkle.db`
+6. Restart:
    - `docker compose up -d --build`
 
-### B. Sanity checks
-- Connect to DB via SQLCipher and run:
-  - `PRAGMA cipher_integrity_check;`
-  - `SELECT count(*) FROM users;`
+## Post-Migration Verification
+- Backend container starts without SQLCipher errors.
+- Healthcheck passes.
+- App login and dashboard load successfully.
+- Negative check:
+  - opening `data/perkle.db` without a key fails with `file is not a database`.
 
-## Testing Plan
-- **Unit/Integration:**
-  - Run backend tests that touch the DB (e.g., benefit detector tests).
-  - Validate migrations (alembic) still work.
-- **Manual Verification:**
-  - Authenticate via API and confirm normal operations.
-  - Upload CSV and confirm transactions persist.
-- **Negative Tests:**
-  - Attempt to open DB via `sqlite3` without key; verify it fails or shows gibberish.
+## Rollback
+1. Stop services:
+   - `docker compose down`
+2. Restore backup:
+   - `cp data/perkle.db.bak.<timestamp> data/perkle.db`
+3. Start services:
+   - `docker compose up -d`
 
-## Environment Considerations (Docker on Linux)
-- Ensure the base image supports SQLCipher packages.
-- Avoid storing keys in plaintext files within the repo.
-- Use `.env` for local dev only; use Docker secrets or env injection for production.
-- Ensure volume permissions allow the container user to read/write the encrypted DB file.
-
-## Rollback Plan
-- Stop services.
-- Restore `perkle.db` from `.bak`.
-- Revert DB URL and dependency changes.
-- Restart services.
-
-## Risks & Mitigations
-- **Risk:** Migration failure corrupts DB.
-  - **Mitigation:** Always back up first, validate integrity after migration.
-- **Risk:** Key misconfiguration locks out app.
-  - **Mitigation:** Validate key injection in staging before production.
-- **Risk:** SQLCipher driver incompatibility.
-  - **Mitigation:** Pin a supported SQLCipher-compatible driver and test in CI.
+## Operational Notes
+- Never commit `DATABASE_KEY`.
+- Keep at least one timestamped backup until you validate production traffic.
+- For key rotation, run the same export flow into a new DB with a new key during a maintenance window.

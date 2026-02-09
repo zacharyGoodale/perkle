@@ -2,8 +2,11 @@
 from collections.abc import Generator
 from contextlib import contextmanager
 import importlib
+from urllib.parse import quote, urlencode
 
 from sqlalchemy import create_engine, event
+from sqlalchemy.dialects.sqlite import pysqlite as sqlite_pysqlite
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
 from app.config import get_settings
@@ -27,17 +30,43 @@ uses_sqlcipher = "pysqlcipher" in settings.database_url
 if uses_sqlcipher and not settings.database_key:
     raise RuntimeError("DATABASE_KEY must be set when using SQLCipher.")
 
-engine = create_engine(
-    settings.database_url,
-    connect_args=connect_args,
-    echo=settings.debug,
+
+def _build_sqlcipher_url(raw_url: str, database_key: str) -> str:
+    parsed_url = make_url(raw_url)
+    if parsed_url.password:
+        return raw_url
+
+    encoded_key = quote(database_key, safe="")
+    database_path = parsed_url.database or ""
+    query = f"?{urlencode(parsed_url.query)}" if parsed_url.query else ""
+    return f"{parsed_url.drivername}://:{encoded_key}@/{database_path}{query}"
+
+
+database_url = (
+    _build_sqlcipher_url(settings.database_url, settings.database_key)
+    if uses_sqlcipher
+    else settings.database_url
 )
+
+# pysqlcipher3 does not support sqlite3's deterministic create_function kwarg.
+# SQLAlchemy checks this through sqlite_pysqlite.util.py38 when creating dialect
+# on-connect handlers, so we disable it only while creating this engine.
+original_py38 = sqlite_pysqlite.util.py38
+if uses_sqlcipher:
+    sqlite_pysqlite.util.py38 = False
+try:
+    engine = create_engine(
+        database_url,
+        connect_args=connect_args,
+        echo=settings.debug,
+    )
+finally:
+    sqlite_pysqlite.util.py38 = original_py38
 
 if "pysqlcipher" in settings.database_url:
     @event.listens_for(engine, "connect")
     def set_sqlcipher_key(dbapi_connection, connection_record) -> None:
         cursor = dbapi_connection.cursor()
-        cursor.execute("PRAGMA key = ?", (settings.database_key,))
         cursor.execute("PRAGMA cipher_memory_security = ON;")
         cursor.close()
 
