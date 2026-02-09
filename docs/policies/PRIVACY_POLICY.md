@@ -20,4 +20,4 @@ Data is used only to provide core product functionality, including authenticatio
 
 If you want your data deleted, notify `zach@goodale.dev`.
 
-Deletion requests are handled according to `docs/DATA_RETENTION_AND_DELETION_SOP.md`.
+Deletion requests are handled according to `docs/policies/DATA_RETENTION_AND_DELETION_SOP.md`.

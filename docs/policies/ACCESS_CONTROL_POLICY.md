@@ -77,7 +77,7 @@ Perkle currently uses application-level ownership checks (row-level filters by `
 ### 9.2 End-User Deprovisioning
 
 - Active session invalidation is supported via logout and refresh-session revocation.
-- Full account/data deletion is currently an operator-run process documented in `docs/DATA_RETENTION_AND_DELETION_SOP.md`.
+- Full account/data deletion is currently an operator-run process documented in `docs/policies/DATA_RETENTION_AND_DELETION_SOP.md`.
 
 ## 10. Monitoring and Verification
 
