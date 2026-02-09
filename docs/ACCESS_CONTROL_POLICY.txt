@@ -36,6 +36,9 @@ Perkle currently uses application-level ownership checks (row-level filters by c
   - Secure flag enabled by default
   - SameSite=Lax
   - Cookie path restricted to /api/auth
+- Deployment access layer (current production model):
+  - Perkle is deployed behind Tailscale.
+  - Access to the app is gated by Tailscale identity and device controls, including MFA where configured in the organization IdP/Tailnet policy.
 
 6. Authorization Controls (Implemented)
 - Protected routes require valid access token (backend/app/api/deps.py).
@@ -71,12 +74,12 @@ Perkle currently uses application-level ownership checks (row-level filters by c
 
 11. Current Limitations and Planned Maturity
 The following are not currently implemented in this repository:
-- Multi-factor authentication (MFA)
+- App-native multi-factor authentication (MFA)
 - Role-based admin model (application is single-role user model)
 - Automated account lockout/rate limiting for login abuse
 - Centralized audit log pipeline/SIEM
 
-These items should be tracked in future security hardening work and reviewed during policy updates.
+If Perkle is deployed directly on the public internet (without Tailscale access gating), app-native MFA should be implemented before production exposure. These items should be tracked in future security hardening work and reviewed during policy updates.
 
 12. Policy Exceptions
 Any exception to this policy requires explicit engineering approval and documentation of:
