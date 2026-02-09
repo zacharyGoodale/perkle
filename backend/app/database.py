@@ -2,7 +2,7 @@
 from collections.abc import Generator
 from contextlib import contextmanager
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
 from app.config import get_settings
@@ -12,11 +12,24 @@ settings = get_settings()
 # SQLite requires check_same_thread=False for FastAPI
 connect_args = {"check_same_thread": False} if "sqlite" in settings.database_url else {}
 
+uses_sqlcipher = "pysqlcipher" in settings.database_url
+
+if uses_sqlcipher and not settings.database_key:
+    raise RuntimeError("DATABASE_KEY must be set when using SQLCipher.")
+
 engine = create_engine(
     settings.database_url,
     connect_args=connect_args,
     echo=settings.debug,
 )
+
+if uses_sqlcipher:
+    @event.listens_for(engine, "connect")
+    def _set_sqlcipher_key(dbapi_connection, _connection_record) -> None:
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA key = ?", (settings.database_key,))
+        cursor.execute("PRAGMA cipher_memory_security = ON;")
+        cursor.close()
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
