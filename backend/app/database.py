@@ -22,6 +22,11 @@ if "pysqlcipher" in settings.database_url:
 # SQLite requires check_same_thread=False for FastAPI
 connect_args = {"check_same_thread": False} if "sqlite" in settings.database_url else {}
 
+uses_sqlcipher = "pysqlcipher" in settings.database_url
+
+if uses_sqlcipher and not settings.database_key:
+    raise RuntimeError("DATABASE_KEY must be set when using SQLCipher.")
+
 engine = create_engine(
     settings.database_url,
     connect_args=connect_args,
