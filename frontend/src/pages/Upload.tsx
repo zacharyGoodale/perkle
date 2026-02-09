@@ -40,12 +40,12 @@ export default function Upload() {
     setError('');
 
     try {
-      const result = await transactions.upload(token, file);
+      const result = await transactions.upload(file);
       setUploadResult(result);
 
       // Auto-run detection
       setDetecting(true);
-      const detection = await benefits.detect(token);
+      const detection = await benefits.detect();
       setDetectionResult(detection);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed');

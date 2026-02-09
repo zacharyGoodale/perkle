@@ -28,7 +28,9 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:5173
+Open your HTTPS Tailscale URL for authenticated testing (`https://<your-tailscale-hostname>:8443`).
+
+Note: auth refresh sessions use `Secure` HttpOnly cookies and are intended for HTTPS browser access.
 
 ### Production (Docker + Tailscale)
 

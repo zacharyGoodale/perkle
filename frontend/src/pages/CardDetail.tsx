@@ -19,7 +19,7 @@ export default function CardDetail() {
   useEffect(() => {
     if (!token) return;
 
-    benefits.getStatus(token)
+    benefits.getStatus()
       .then(setData)
       .finally(() => setLoading(false));
   }, [token]);
@@ -31,9 +31,9 @@ export default function CardDetail() {
     setMarking(benefit.slug);
 
     try {
-      await benefits.markUsed(token, cardId, benefit.slug, amount);
+      await benefits.markUsed(cardId, benefit.slug, amount);
       // Refresh data
-      const updated = await benefits.getStatus(token);
+      const updated = await benefits.getStatus();
       setData(updated);
       setAmountModal(null);
       setCustomAmount('');
@@ -72,12 +72,12 @@ export default function CardDetail() {
     setHiding(benefit.slug);
 
     try {
-      await cards.updateBenefitSetting(token, cardId, {
+      await cards.updateBenefitSetting(cardId, {
         benefit_slug: benefit.slug,
         hidden: !benefit.hidden,
       });
       // Refresh data
-      const updated = await benefits.getStatus(token);
+      const updated = await benefits.getStatus();
       setData(updated);
     } catch (err) {
       console.error(err);

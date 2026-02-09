@@ -4,7 +4,7 @@ services:
     volumes:
       - ./data:/app/data
     environment:
-      - SECRET_KEY=${SECRET_KEY:-changeme-in-production}
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be set}
       - DATABASE_URL=sqlite+pysqlcipher:///data/perkle.db
       - DATABASE_KEY=${DATABASE_KEY:?DATABASE_KEY must be set}
     restart: unless-stopped

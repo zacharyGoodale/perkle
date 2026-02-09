@@ -84,7 +84,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (!token) return;
     
-    benefits.getStatus(token)
+    benefits.getStatus()
       .then(setData)
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));

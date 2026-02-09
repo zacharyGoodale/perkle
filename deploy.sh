@@ -53,11 +53,13 @@ echo "Building and starting Docker containers..."
 echo "✓ Containers started"
 
 # Configure Tailscale serve (using port 8443 to avoid conflict with amuse-bouche on 443)
+TAILSCALE_ENABLED=0
 if command -v tailscale >/dev/null 2>&1; then
     echo ""
     echo "Configuring Tailscale serve on port 8443..."
     if tailscale serve --bg --https=8443 http://localhost:80 2>&1; then
         HOSTNAME=$(tailscale status --json 2>/dev/null | jq -r '.Self.DNSName' 2>/dev/null | sed 's/\.$//' || echo "<your-machine>")
+        TAILSCALE_ENABLED=1
         echo "✓ Tailscale serve enabled"
     else
         echo "⚠️  Tailscale serve configuration failed"
@@ -83,6 +85,11 @@ echo "  • Stop:          ${COMPOSE_CMD[*]} down"
 echo "  • Restart:       ${COMPOSE_CMD[*]} restart"
 echo "  • Rebuild:       ${COMPOSE_CMD[*]} up -d --build"
 echo ""
-echo "Local access:     http://localhost"
-echo "Tailscale access: https://${HOSTNAME}:8443"
+if [ "$TAILSCALE_ENABLED" -eq 1 ]; then
+    echo "Primary app URL:  https://${HOSTNAME}:8443"
+    echo "Local internal:   http://localhost (no TLS; not recommended for auth flows)"
+else
+    echo "Tailscale HTTPS:  not configured"
+    echo "Local internal:   http://localhost (no TLS)"
+fi
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

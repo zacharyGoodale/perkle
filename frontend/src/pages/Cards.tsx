@@ -19,7 +19,7 @@ export default function Cards() {
 
     Promise.all([
       cards.getAvailable(),
-      cards.getMy(token),
+      cards.getMy(),
     ])
       .then(([available, mine]) => {
         setAvailableCards(available);
@@ -38,7 +38,7 @@ export default function Cards() {
     setAdding(cardConfig.id);
 
     try {
-      const newCard = await cards.add(token, cardConfig.id, undefined, anniversary);
+      const newCard = await cards.add(cardConfig.id, undefined, anniversary);
       setMyCards([...myCards, newCard]);
       setShowAnniversaryModal(null); setAnniversaryMonth(''); setAnniversaryDay('');
       setAnniversaryMonth(''); setAnniversaryDay('');
@@ -61,7 +61,7 @@ export default function Cards() {
     if (!token) return;
 
     try {
-      await cards.remove(token, userCardId);
+      await cards.remove(userCardId);
       setMyCards(myCards.filter(c => c.id !== userCardId));
     } catch (err) {
       console.error(err);

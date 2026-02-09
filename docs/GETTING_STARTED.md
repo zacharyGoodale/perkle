@@ -37,9 +37,12 @@ npm run dev
 
 Frontend runs at http://localhost:5173
 
+> Auth sessions use `Secure` HttpOnly refresh cookies. Login/refresh requires HTTPS in browser environments.
+> For remote/local secure access, use Tailscale serve (`https://<hostname>:8443`).
+
 ### First Steps
 
-1. Open http://localhost:5173
+1. Open https://<your-tailscale-hostname>:8443 for authenticated flows (or localhost for read-only UI work)
 2. Register an account
 3. Add your credit cards (you'll be prompted for card anniversary date for CSR and Venture X)
 4. Upload a transaction CSV from your financial aggregator
@@ -105,7 +108,7 @@ docker compose up -d --build
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `SECRET_KEY` | JWT signing key | `changeme-in-production` |
+| `SECRET_KEY` | JWT signing key (required, strong random) | (none) |
 | `DATABASE_URL` | SQLCipher SQLite path | `sqlite+pysqlcipher:///data/perkle.db` |
 | `DATABASE_KEY` | SQLCipher encryption key (required) | (empty) |
 

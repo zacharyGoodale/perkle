@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { auth } from '../lib/api';
+import { auth, setAccessToken } from '../lib/api';
 
 interface AuthState {
   token: string | null;
@@ -10,13 +10,10 @@ interface AuthState {
 interface AuthContextType extends AuthState {
   login: (username: string, password: string) => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
-
-const TOKEN_KEY = 'perkle_token';
-const REFRESH_KEY = 'perkle_refresh';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({
@@ -26,23 +23,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
-    // Check for stored token on mount
-    const storedToken = localStorage.getItem(TOKEN_KEY);
-    if (storedToken) {
-      setState({
-        token: storedToken,
-        isAuthenticated: true,
-        isLoading: false,
+    auth.refresh()
+      .then((tokens) => {
+        setState({
+          token: tokens.access_token,
+          isAuthenticated: true,
+          isLoading: false,
+        });
+      })
+      .catch(() => {
+        setAccessToken(null);
+        setState({
+          token: null,
+          isAuthenticated: false,
+          isLoading: false,
+        });
       });
-    } else {
-      setState(s => ({ ...s, isLoading: false }));
-    }
   }, []);
 
   const login = async (username: string, password: string) => {
     const response = await auth.login({ username, password });
-    localStorage.setItem(TOKEN_KEY, response.access_token);
-    localStorage.setItem(REFRESH_KEY, response.refresh_token);
     setState({
       token: response.access_token,
       isAuthenticated: true,
@@ -56,9 +56,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await login(username, password);
   };
 
-  const logout = () => {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(REFRESH_KEY);
+  const logout = async () => {
+    await auth.logout().catch(() => undefined);
     setState({
       token: null,
       isAuthenticated: false,

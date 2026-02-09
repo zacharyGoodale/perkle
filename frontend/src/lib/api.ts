@@ -1,96 +1,98 @@
 const API_BASE = '/api';
-const ACCESS_TOKEN_KEY = 'perkle_token';
-const REFRESH_TOKEN_KEY = 'perkle_refresh';
-// TODO(auth): Move refresh tokens to HttpOnly cookies and keep access tokens in memory only.
+
+let accessToken: string | null = null;
+let refreshInFlight: Promise<TokenResponse | null> | null = null;
 
 interface FetchOptions extends RequestInit {
-  token?: string;
   retryOnUnauthorized?: boolean;
+  withAuth?: boolean;
 }
 
-interface RefreshResponse {
+export interface TokenResponse {
   access_token: string;
-  refresh_token: string;
   token_type: string;
 }
 
-function getStoredToken(): string | null {
-  return localStorage.getItem(ACCESS_TOKEN_KEY);
+export interface MessageResponse {
+  message: string;
 }
 
-function setStoredTokens(tokens: RefreshResponse) {
-  localStorage.setItem(ACCESS_TOKEN_KEY, tokens.access_token);
-  localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refresh_token);
+export function setAccessToken(token: string | null) {
+  accessToken = token;
 }
 
-function clearStoredTokens() {
-  localStorage.removeItem(ACCESS_TOKEN_KEY);
-  localStorage.removeItem(REFRESH_TOKEN_KEY);
+export function getAccessToken(): string | null {
+  return accessToken;
 }
 
-async function refreshAccessToken(): Promise<RefreshResponse | null> {
-  const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
-  if (!refreshToken) {
-    return null;
+async function refreshAccessToken(): Promise<TokenResponse | null> {
+  if (refreshInFlight) {
+    return refreshInFlight;
   }
 
-  const response = await fetch(`${API_BASE}/auth/refresh`, {
+  refreshInFlight = fetch(`${API_BASE}/auth/refresh`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refresh_token: refreshToken }),
-  });
+    credentials: 'include',
+  })
+    .then(async (response) => {
+      if (!response.ok) {
+        setAccessToken(null);
+        return null;
+      }
 
-  if (!response.ok) {
-    return null;
-  }
+      const refreshed = (await response.json()) as TokenResponse;
+      setAccessToken(refreshed.access_token);
+      return refreshed;
+    })
+    .catch(() => {
+      setAccessToken(null);
+      return null;
+    })
+    .finally(() => {
+      refreshInFlight = null;
+    });
 
-  return response.json();
+  return refreshInFlight;
 }
 
 async function fetchApi<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
-  const { token, retryOnUnauthorized = true, ...fetchOptions } = options;
-  const storedToken = getStoredToken();
-  const authToken = storedToken ?? token;
-  
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-  
-  if (authToken) {
-    headers['Authorization'] = `Bearer ${authToken}`;
+  const { retryOnUnauthorized = true, withAuth = true, ...fetchOptions } = options;
+
+  const headers = new Headers(fetchOptions.headers);
+  if (!(fetchOptions.body instanceof FormData) && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
   }
-  
+
+  if (withAuth && accessToken) {
+    headers.set('Authorization', `Bearer ${accessToken}`);
+  }
+
   const response = await fetch(`${API_BASE}${endpoint}`, {
     ...fetchOptions,
     headers,
+    credentials: 'include',
   });
-  
-  // Handle 401 Unauthorized - attempt refresh once before logging out
-  if (response.status === 401 && retryOnUnauthorized) {
+
+  if (response.status === 401 && withAuth && retryOnUnauthorized) {
     const refreshed = await refreshAccessToken();
     if (refreshed?.access_token) {
-      setStoredTokens(refreshed);
-      return fetchApi<T>(endpoint, {
-        ...fetchOptions,
-        token: refreshed.access_token,
-        retryOnUnauthorized: false,
-      });
+      return fetchApi<T>(endpoint, { ...fetchOptions, retryOnUnauthorized: false, withAuth: true });
     }
 
-    clearStoredTokens();
+    setAccessToken(null);
     window.location.href = '/login';
     throw new Error('Session expired');
   }
-  
+
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'Request failed' }));
     throw new Error(error.detail || 'Request failed');
   }
-  
+
   if (response.status === 204) {
     return {} as T;
   }
-  
+
   return response.json();
 }
 
@@ -106,12 +108,6 @@ export interface RegisterRequest {
   password: string;
 }
 
-export interface TokenResponse {
-  access_token: string;
-  refresh_token: string;
-  token_type: string;
-}
-
 export interface UserResponse {
   id: string;
   username: string;
@@ -120,23 +116,40 @@ export interface UserResponse {
 }
 
 export const auth = {
-  login: (data: LoginRequest) => 
-    fetchApi<TokenResponse>('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
-  
+  login: async (data: LoginRequest) => {
+    const tokens = await fetchApi<TokenResponse>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(data),
+      withAuth: false,
+      retryOnUnauthorized: false,
+    });
+    setAccessToken(tokens.access_token);
+    return tokens;
+  },
+
   register: (data: RegisterRequest) =>
-    fetchApi<UserResponse>('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
-  
-  refresh: (refreshToken: string) =>
-    fetch(`${API_BASE}/auth/refresh`, { 
-      method: 'POST', 
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh_token: refreshToken }),
-    }).then(async response => {
-      if (!response.ok) {
-        throw new Error('Refresh failed');
-      }
-      return response.json() as Promise<TokenResponse>;
+    fetchApi<UserResponse>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(data),
+      withAuth: false,
+      retryOnUnauthorized: false,
     }),
+
+  refresh: async () => {
+    const tokens = await refreshAccessToken();
+    if (!tokens) {
+      throw new Error('Refresh failed');
+    }
+    return tokens;
+  },
+
+  logout: async () => {
+    try {
+      await fetchApi<MessageResponse>('/auth/logout', { method: 'POST' });
+    } finally {
+      setAccessToken(null);
+    }
+  },
 };
 
 // Cards
@@ -172,28 +185,25 @@ export interface UserCard {
 }
 
 export const cards = {
-  getAvailable: () => fetchApi<CardConfig[]>('/cards/available'),
-  
-  getMy: (token: string) => 
-    fetchApi<UserCard[]>('/cards/my', { token }),
-  
-  add: (token: string, cardConfigId: string, nickname?: string, cardAnniversary?: string) =>
+  getAvailable: () => fetchApi<CardConfig[]>('/cards/available', { withAuth: false }),
+
+  getMy: () => fetchApi<UserCard[]>('/cards/my'),
+
+  add: (cardConfigId: string, nickname?: string, cardAnniversary?: string) =>
     fetchApi<UserCard>('/cards/my', {
-      token,
       method: 'POST',
-      body: JSON.stringify({ 
-        card_config_id: cardConfigId, 
-        nickname, 
-        card_anniversary: cardAnniversary 
+      body: JSON.stringify({
+        card_config_id: cardConfigId,
+        nickname,
+        card_anniversary: cardAnniversary,
       }),
     }),
-  
-  remove: (token: string, userCardId: string) =>
-    fetchApi<void>(`/cards/my/${userCardId}`, { token, method: 'DELETE' }),
-  
-  updateBenefitSetting: (token: string, userCardId: string, setting: BenefitSettingUpdate) =>
+
+  remove: (userCardId: string) =>
+    fetchApi<void>(`/cards/my/${userCardId}`, { method: 'DELETE' }),
+
+  updateBenefitSetting: (userCardId: string, setting: BenefitSettingUpdate) =>
     fetchApi(`/cards/my/${userCardId}/benefits/settings`, {
-      token,
       method: 'PUT',
       body: JSON.stringify(setting),
     }),
@@ -208,33 +218,40 @@ export interface UploadResult {
 }
 
 export const transactions = {
-  upload: async (token: string, file: File): Promise<UploadResult> => {
-    const storedToken = getStoredToken();
-    const authToken = storedToken ?? token;
+  upload: async (file: File): Promise<UploadResult> => {
     const formData = new FormData();
     formData.append('file', file);
-    
-    const sendRequest = async (accessToken: string) =>
+
+    const sendRequest = async (token: string) =>
       fetch(`${API_BASE}/transactions/upload`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${accessToken}` },
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
+        credentials: 'include',
       });
-    
-    let response = await sendRequest(authToken ?? '');
+
+    const initialToken = getAccessToken();
+    if (!initialToken) {
+      throw new Error('Not authenticated');
+    }
+
+    let response = await sendRequest(initialToken);
     if (response.status === 401) {
       const refreshed = await refreshAccessToken();
       if (refreshed?.access_token) {
-        setStoredTokens(refreshed);
         response = await sendRequest(refreshed.access_token);
+      } else {
+        setAccessToken(null);
+        window.location.href = '/login';
+        throw new Error('Session expired');
       }
     }
-    
+
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: 'Upload failed' }));
       throw new Error(error.detail || 'Upload failed');
     }
-    
+
     return response.json();
   },
 };
@@ -298,15 +315,13 @@ export interface DetectionResult {
 }
 
 export const benefits = {
-  getStatus: (token: string) =>
-    fetchApi<BenefitStatusResponse>('/benefits/status?include_hidden=true', { token }),
-  
-  detect: (token: string) =>
-    fetchApi<DetectionResult>('/benefits/detect', { token, method: 'POST' }),
-  
-  markUsed: (token: string, userCardId: string, benefitSlug: string, amount?: number, notes?: string) =>
+  getStatus: () => fetchApi<BenefitStatusResponse>('/benefits/status?include_hidden=true'),
+
+  detect: () =>
+    fetchApi<DetectionResult>('/benefits/detect', { method: 'POST' }),
+
+  markUsed: (userCardId: string, benefitSlug: string, amount?: number, notes?: string) =>
     fetchApi('/benefits/mark-used', {
-      token,
       method: 'POST',
       body: JSON.stringify({ user_card_id: userCardId, benefit_slug: benefitSlug, amount, notes }),
     }),

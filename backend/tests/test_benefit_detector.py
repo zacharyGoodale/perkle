@@ -8,6 +8,7 @@ from sqlalchemy.orm import sessionmaker
 
 os.environ.setdefault("DATABASE_KEY", "test-key")
 os.environ.setdefault("DATABASE_URL", "sqlite:///./data/perkle.db")
+os.environ.setdefault("SECRET_KEY", "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef")
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
