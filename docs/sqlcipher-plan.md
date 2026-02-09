@@ -30,7 +30,6 @@ Use SQLCipher to encrypt the SQLite database file at rest while keeping the exis
 Update the database URL to use a SQLCipher-compatible scheme:
 - Example: `sqlite+pysqlcipher:///./data/perkle.db`
 - Add a new env var for the encryption key, e.g. `DATABASE_KEY`.
-  - In Docker Compose, pass both `DATABASE_URL` (SQLCipher scheme) and `DATABASE_KEY`.
 
 ### 3) Key Management
 - Store `DATABASE_KEY` as a Docker secret or env var in the deployment.
@@ -46,7 +45,7 @@ Update the database URL to use a SQLCipher-compatible scheme:
 **Preferred (preserve data):**
 1. Stop the backend service to avoid DB writes.
 2. Backup plaintext DB:
-   - `cp data/perkle.db data/perkle.db.bak`
+   - `cp backend/data/perkle.db backend/data/perkle.db.bak`
 3. Use `sqlcipher` tool to export plaintext and import encrypted:
    - Open plaintext DB with standard `sqlite3` to dump SQL.
    - Create new encrypted DB using `sqlcipher` and import the dump.
@@ -55,12 +54,12 @@ Update the database URL to use a SQLCipher-compatible scheme:
 
 **Alternative (drop data if migration too complex):**
 - Stop backend.
-- Remove `data/perkle.db`.
+- Remove `backend/data/perkle.db`.
 - Start backend to recreate schema.
 - Notify users that data has been reset.
 
 ### 6) Docker Compose Updates (Linux)
-- Add `DATABASE_KEY` to environment and switch `DATABASE_URL` to SQLCipher.
+- Add `DATABASE_KEY` to environment.
 - Ensure volume mount path is unchanged so encrypted DB persists.
 - Confirm container has access to SQLCipher libs.
 
@@ -74,11 +73,11 @@ Update the database URL to use a SQLCipher-compatible scheme:
 1. Stop services:
    - `docker compose down`
 2. Backup DB:
-   - `cp data/perkle.db data/perkle.db.bak`
+   - `cp backend/data/perkle.db backend/data/perkle.db.bak`
 3. Export plaintext DB:
-   - `sqlite3 data/perkle.db ".dump" > /tmp/perkle_plain.sql`
+   - `sqlite3 backend/data/perkle.db ".dump" > /tmp/perkle_plain.sql`
 4. Create encrypted DB:
-   - `sqlcipher data/perkle.db`
+   - `sqlcipher backend/data/perkle.db`
    - `PRAGMA key='${DATABASE_KEY}';`
    - `.read /tmp/perkle_plain.sql`
    - `PRAGMA cipher_integrity_check;`

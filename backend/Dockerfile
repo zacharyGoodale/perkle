@@ -2,10 +2,10 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Install SQLCipher runtime/build dependencies
+# Install SQLCipher dependencies
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        gcc \
+        build-essential \
         libsqlcipher-dev \
         sqlcipher \
     && rm -rf /var/lib/apt/lists/*
