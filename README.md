@@ -49,6 +49,7 @@ See [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) for full setup instructio
 - [Technical Design](docs/DESIGN.md) - Architecture and implementation details
 - [Information Security Policy](docs/INFORMATION_SECURITY_POLICY.md) - Implemented security controls and risk procedures
 - [Access Control Policy](docs/ACCESS_CONTROL_POLICY.md) - Authentication, authorization, and session control model
+- [Privacy Policy](docs/PRIVACY_POLICY.md) - Private-use scope and data deletion contact
 - [Data Retention & Deletion SOP](docs/DATA_RETENTION_AND_DELETION_SOP.md) - Retention policy and user deletion runbook
 
 ## Tech Stack
