@@ -314,6 +314,28 @@ export interface DetectionResult {
   }>;
 }
 
+// Plaid
+export interface PlaidLinkTokenResponse {
+  link_token: string;
+  expiration: string;
+}
+
+export interface PlaidExchangeResponse {
+  message: string;
+  institution_name?: string;
+}
+
+export const plaid = {
+  createLinkToken: () =>
+    fetchApi<PlaidLinkTokenResponse>('/plaid/link-token', { method: 'POST' }),
+
+  exchangePublicToken: (public_token: string, institution_id?: string, institution_name?: string) =>
+    fetchApi<PlaidExchangeResponse>('/plaid/exchange', {
+      method: 'POST',
+      body: JSON.stringify({ public_token, institution_id, institution_name }),
+    }),
+};
+
 export const benefits = {
   getStatus: () => fetchApi<BenefitStatusResponse>('/benefits/status?include_hidden=true'),
 

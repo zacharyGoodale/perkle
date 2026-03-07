@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard';
 import Upload from './pages/Upload';
 import Cards from './pages/Cards';
 import CardDetail from './pages/CardDetail';
+import PlaidOAuthRedirect from './pages/PlaidOAuthRedirect';
 
 export default function App() {
   return (
@@ -47,6 +48,15 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <CardDetail />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/oauth/plaid"
+            element={
+              <ProtectedRoute>
+                <PlaidOAuthRedirect />
               </ProtectedRoute>
             }
           />

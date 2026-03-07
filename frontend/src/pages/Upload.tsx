@@ -3,16 +3,20 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { transactions, benefits, type UploadResult, type DetectionResult } from '../lib/api';
 import { Upload as UploadIcon, CheckCircle, AlertCircle } from 'lucide-react';
+import { cn } from '../lib/utils';
+import PlaidLinkButton from '../components/PlaidLinkButton';
 
 export default function Upload() {
   const { token } = useAuth();
   const navigate = useNavigate();
+  const [mode, setMode] = useState<'csv' | 'plaid'>('csv');
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [detecting, setDetecting] = useState(false);
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
   const [detectionResult, setDetectionResult] = useState<DetectionResult | null>(null);
   const [error, setError] = useState('');
+  const [plaidConnected, setPlaidConnected] = useState<string | null>(null);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -62,63 +66,124 @@ export default function Upload() {
       </header>
 
       <div className="p-4">
-        {!uploadResult ? (
+        {!uploadResult && !plaidConnected ? (
           <>
-            {/* Dropzone */}
-            <div
-              onDrop={handleDrop}
-              onDragOver={(e) => e.preventDefault()}
-              className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-500 transition-colors"
-            >
-              <UploadIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 mb-2">
-                Drag & drop your transactions CSV here
-              </p>
-              <p className="text-sm text-gray-400 mb-4">or</p>
-              <label className="cursor-pointer">
-                <span className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                  Choose file
-                </span>
-                <input
-                  type="file"
-                  accept=".csv"
-                  onChange={handleFileSelect}
-                  className="hidden"
-                />
-              </label>
+            {/* Tab toggle */}
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={() => setMode('csv')}
+                className={cn(
+                  'flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors',
+                  mode === 'csv'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50',
+                )}
+              >
+                CSV Upload
+              </button>
+              <button
+                onClick={() => setMode('plaid')}
+                className={cn(
+                  'flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors',
+                  mode === 'plaid'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50',
+                )}
+              >
+                Connect Bank
+              </button>
             </div>
 
-            {file && (
-              <div className="mt-4 p-4 bg-white rounded-xl">
-                <p className="font-medium">{file.name}</p>
-                <p className="text-sm text-gray-500">
-                  {(file.size / 1024).toFixed(1)} KB
-                </p>
-                <button
-                  onClick={handleUpload}
-                  disabled={uploading}
-                  className="mt-4 w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            {mode === 'csv' ? (
+              <>
+                {/* Dropzone */}
+                <div
+                  onDrop={handleDrop}
+                  onDragOver={(e) => e.preventDefault()}
+                  className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-500 transition-colors"
                 >
-                  {uploading ? 'Uploading...' : detecting ? 'Detecting benefits...' : 'Upload & Detect'}
-                </button>
+                  <UploadIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-2">
+                    Drag & drop your transactions CSV here
+                  </p>
+                  <p className="text-sm text-gray-400 mb-4">or</p>
+                  <label className="cursor-pointer">
+                    <span className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                      Choose file
+                    </span>
+                    <input
+                      type="file"
+                      accept=".csv"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+
+                {file && (
+                  <div className="mt-4 p-4 bg-white rounded-xl">
+                    <p className="font-medium">{file.name}</p>
+                    <p className="text-sm text-gray-500">
+                      {(file.size / 1024).toFixed(1)} KB
+                    </p>
+                    <button
+                      onClick={handleUpload}
+                      disabled={uploading}
+                      className="mt-4 w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {uploading ? 'Uploading...' : detecting ? 'Detecting benefits...' : 'Upload & Detect'}
+                    </button>
+                  </div>
+                )}
+
+                {error && (
+                  <div className="mt-4 p-4 bg-red-50 text-red-600 rounded-xl flex items-center gap-2">
+                    <AlertCircle className="w-5 h-5" />
+                    {error}
+                  </div>
+                )}
+
+                <div className="mt-6 p-4 bg-blue-50 rounded-xl">
+                  <h3 className="font-medium text-blue-900">Supported format</h3>
+                  <p className="text-sm text-blue-700 mt-1">
+                    Export from Copilot, Monarch, or similar. CSV should include: date, name, amount, account columns.
+                  </p>
+                </div>
+              </>
+            ) : (
+              <div className="space-y-4">
+                <div className="p-4 bg-white rounded-xl">
+                  <p className="text-gray-600 text-sm mb-4">
+                    Connect your bank account to automatically import transactions. Your credentials are handled securely by Plaid and never stored by Perkle.
+                  </p>
+                  <PlaidLinkButton onSuccess={(name) => setPlaidConnected(name ?? 'your bank')} />
+                </div>
               </div>
             )}
-
-            {error && (
-              <div className="mt-4 p-4 bg-red-50 text-red-600 rounded-xl flex items-center gap-2">
-                <AlertCircle className="w-5 h-5" />
-                {error}
-              </div>
-            )}
-
-            <div className="mt-6 p-4 bg-blue-50 rounded-xl">
-              <h3 className="font-medium text-blue-900">Supported format</h3>
-              <p className="text-sm text-blue-700 mt-1">
-                Export from Copilot, Monarch, or similar. CSV should include: date, name, amount, account columns.
+          </>
+        ) : plaidConnected ? (
+          <div className="space-y-4">
+            <div className="bg-white rounded-xl p-4 text-center">
+              <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
+              <h2 className="font-semibold text-lg">Bank Connected</h2>
+              <p className="text-sm text-gray-500 mt-1">
+                Successfully connected to {plaidConnected}. Your transactions will be imported shortly.
               </p>
             </div>
-          </>
-        ) : (
+            <button
+              onClick={() => navigate('/')}
+              className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              View Dashboard
+            </button>
+            <button
+              onClick={() => setPlaidConnected(null)}
+              className="w-full py-3 border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
+              Connect Another Account
+            </button>
+          </div>
+        ) : uploadResult ? (
           /* Results */
           <div className="space-y-4">
             {/* Upload Summary */}
@@ -196,7 +261,7 @@ export default function Upload() {
               Upload Another File
             </button>
           </div>
-        )}
+        ) : null}
       </div>
 
       {/* Bottom Nav */}
