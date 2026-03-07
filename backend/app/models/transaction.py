@@ -43,6 +43,10 @@ class Transaction(Base):
     
     # Benefit tracking
     benefit_slug = Column(String(50))  # Which benefit this applies to (if any)
+
+    # Source tracking
+    source = Column(String(10), default="csv")  # "csv" or "plaid"
+    plaid_transaction_id = Column(String(100), index=True)
     
     # Timestamps
     imported_at = Column(String(26), default=lambda: datetime.utcnow().isoformat())

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { benefits, type BenefitStatusResponse, type BenefitStatus } from '../lib/api';
-import { CheckCircle, AlertCircle, Circle, Clock, ChevronRight, Info, CreditCard } from 'lucide-react';
+import { benefits, plaid, type BenefitStatusResponse, type BenefitStatus } from '../lib/api';
+import { CheckCircle, AlertCircle, Circle, Clock, ChevronRight, Info, CreditCard, RefreshCw } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 function StatusIcon({ status }: { status: BenefitStatus['status'] }) {
@@ -79,16 +79,32 @@ export default function Dashboard() {
   const { token, logout } = useAuth();
   const [data, setData] = useState<BenefitStatusResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    if (!token) return;
-    
+  const loadData = () => {
     benefits.getStatus()
       .then(setData)
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    if (!token) return;
+    loadData();
   }, [token]);
+
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      await plaid.sync();
+      await loadData();
+    } catch {
+      // Silently ignore if no Plaid items — sync just returns 0
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -117,7 +133,18 @@ export default function Dashboard() {
         <header className="bg-white border-b px-4 py-4">
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-bold">🎯 Perkle</h1>
-            <button onClick={logout} className="text-sm text-gray-600">Logout</button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleSync}
+                disabled={syncing}
+                className="flex items-center gap-1 text-sm text-gray-600 hover:text-blue-600 disabled:opacity-50"
+                title="Sync bank transactions"
+              >
+                <RefreshCw className={cn("w-4 h-4", syncing && "animate-spin")} />
+                {syncing ? 'Syncing...' : 'Sync'}
+              </button>
+              <button onClick={logout} className="text-sm text-gray-600">Logout</button>
+            </div>
           </div>
         </header>
         <div className="p-4 text-center mt-20">
@@ -171,7 +198,18 @@ export default function Dashboard() {
       <header className="bg-white border-b px-4 py-4 sticky top-0 z-10">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold">🎯 Perkle</h1>
-          <button onClick={logout} className="text-sm text-gray-600">Logout</button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleSync}
+              disabled={syncing}
+              className="flex items-center gap-1 text-sm text-gray-600 hover:text-blue-600 disabled:opacity-50"
+              title="Sync bank transactions"
+            >
+              <RefreshCw className={cn("w-4 h-4", syncing && "animate-spin")} />
+              {syncing ? 'Syncing...' : 'Sync'}
+            </button>
+            <button onClick={logout} className="text-sm text-gray-600">Logout</button>
+          </div>
         </div>
       </header>
 

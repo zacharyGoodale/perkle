@@ -29,6 +29,12 @@ class Settings(BaseSettings):
     refresh_cookie_samesite: str = "lax"
     refresh_cookie_secure: bool = True
     
+    # Plaid
+    plaid_client_id: str = ""
+    plaid_secret: str = ""
+    plaid_env: str = "sandbox"  # sandbox or production
+    plaid_redirect_uri: str = ""
+
     # Paths
     base_dir: Path = Path(__file__).parent
     configs_dir: Path = base_dir / "configs" / "cards"

@@ -167,7 +167,7 @@ export default function Upload() {
               <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
               <h2 className="font-semibold text-lg">Bank Connected</h2>
               <p className="text-sm text-gray-500 mt-1">
-                Successfully connected to {plaidConnected}. Your transactions will be imported shortly.
+                Successfully connected to {plaidConnected}. Transactions have been imported and benefits detected.
               </p>
             </div>
             <button

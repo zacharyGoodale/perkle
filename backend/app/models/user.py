@@ -27,3 +27,4 @@ class User(Base):
     notifications = relationship("Notification", backref="user", cascade="all, delete-orphan")
     benefit_settings = relationship("UserBenefitSettings", back_populates="user", cascade="all, delete-orphan")
     refresh_sessions = relationship("RefreshSession", back_populates="user", cascade="all, delete-orphan")
+    plaid_items = relationship("PlaidItem", back_populates="user", cascade="all, delete-orphan")

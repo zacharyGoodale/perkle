@@ -56,10 +56,11 @@ async def health_check():
 
 
 # Import and include routers
-from app.api import auth, benefits, cards, notifications, transactions  # noqa: E402
+from app.api import auth, benefits, cards, notifications, plaid, transactions  # noqa: E402
 
 app.include_router(auth.router, prefix="/api")
 app.include_router(cards.router, prefix="/api")
 app.include_router(transactions.router, prefix="/api")
 app.include_router(benefits.router, prefix="/api")
 app.include_router(notifications.router, prefix="/api")
+app.include_router(plaid.router, prefix="/api")

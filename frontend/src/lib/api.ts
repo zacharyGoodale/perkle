@@ -325,6 +325,13 @@ export interface PlaidExchangeResponse {
   institution_name?: string;
 }
 
+export interface PlaidSyncResponse {
+  added: number;
+  modified: number;
+  removed: number;
+  accounts_synced: number;
+}
+
 export const plaid = {
   createLinkToken: () =>
     fetchApi<PlaidLinkTokenResponse>('/plaid/link-token', { method: 'POST' }),
@@ -334,6 +341,9 @@ export const plaid = {
       method: 'POST',
       body: JSON.stringify({ public_token, institution_id, institution_name }),
     }),
+
+  sync: () =>
+    fetchApi<PlaidSyncResponse>('/plaid/sync', { method: 'POST' }),
 };
 
 export const benefits = {

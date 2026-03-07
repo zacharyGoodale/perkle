@@ -5,6 +5,7 @@ from app.models.transaction import Transaction
 from app.models.benefit import BenefitPeriod
 from app.models.notification import Notification
 from app.models.auth import RefreshSession
+from app.models.plaid_item import PlaidItem
 
 __all__ = [
     "User",
@@ -15,4 +16,5 @@ __all__ = [
     "BenefitPeriod",
     "Notification",
     "RefreshSession",
+    "PlaidItem",
 ]

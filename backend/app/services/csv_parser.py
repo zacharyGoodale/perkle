@@ -11,32 +11,46 @@ from app.models.card import CardConfig
 from app.models.transaction import Transaction
 
 
+def build_card_patterns(db: Session) -> list[tuple[str, str]]:
+    """Load card configs and build (pattern, config_id) pairs for account matching."""
+    card_configs = db.query(CardConfig).all()
+    patterns = []
+    for cc in card_configs:
+        for pattern in json.loads(cc.account_patterns):
+            patterns.append((pattern.lower(), cc.id))
+    return patterns
+
+
+def match_card_config(account_name: str, card_patterns: list[tuple[str, str]]) -> str | None:
+    """Match an account name to a card config ID using account patterns."""
+    account_lower = account_name.lower()
+    for pattern, config_id in card_patterns:
+        if pattern in account_lower:
+            return config_id
+    return None
+
+
 def parse_csv(
     db: Session,
     user_id: str,
     csv_content: str,
 ) -> dict:
     """Parse CSV content and import transactions.
-    
+
     Returns dict with counts: imported, skipped (duplicates), errors.
     """
     reader = csv.DictReader(io.StringIO(csv_content))
-    
+
     # Load card configs and their account patterns
-    card_configs = db.query(CardConfig).all()
-    card_patterns = []
-    for cc in card_configs:
-        patterns = json.loads(cc.account_patterns)
-        for pattern in patterns:
-            card_patterns.append((pattern.lower(), cc.id))
-    
+    card_patterns = build_card_patterns(db)
+
     imported = 0
     skipped = 0
     errors = []
-    
+
     # Track keys seen in this import to handle duplicates within same file
     seen_in_file: set[tuple] = set()
-    
+
     for row_num, row in enumerate(reader, start=2):  # Start at 2 (header is row 1)
         try:
             # Parse required fields
@@ -44,34 +58,29 @@ def parse_csv(
             name = row.get("name", "").strip().strip('"')
             amount_str = row.get("amount", "").strip().strip('"')
             account = row.get("account", "").strip().strip('"')
-            
+
             if not date_str or not name or not amount_str or not account:
                 errors.append(f"Row {row_num}: Missing required field")
                 continue
-            
+
             # Parse amount
             try:
                 amount = float(amount_str)
             except ValueError:
                 errors.append(f"Row {row_num}: Invalid amount '{amount_str}'")
                 continue
-            
+
             # Create dedup key
             dedup_key = (date_str, name, amount, account)
-            
+
             # Check for duplicate within this file
             if dedup_key in seen_in_file:
                 skipped += 1
                 continue
             seen_in_file.add(dedup_key)
-            
+
             # Match to card config
-            card_config_id = None
-            account_lower = account.lower()
-            for pattern, config_id in card_patterns:
-                if pattern in account_lower:
-                    card_config_id = config_id
-                    break
+            card_config_id = match_card_config(account, card_patterns)
             
             # Check for duplicate in database
             existing = db.query(Transaction).filter(
