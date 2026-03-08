@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.models.plaid_item import PlaidItem
 from app.models.transaction import Transaction
-from app.services.csv_parser import build_card_patterns, match_card_config
+from app.services.card_matching import build_card_patterns, match_card_config
 from app.services.plaid_client import get_plaid_client
 
 

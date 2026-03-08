@@ -384,9 +384,9 @@ export default function Dashboard() {
           <span className="text-xl">📊</span>
           <span className="text-xs mt-1">Dashboard</span>
         </Link>
-        <Link to="/upload" className="flex flex-col items-center py-2 px-4 text-gray-600">
-          <span className="text-xl">📤</span>
-          <span className="text-xs mt-1">Upload</span>
+        <Link to="/accounts" className="flex flex-col items-center py-2 px-4 text-gray-600">
+          <span className="text-xl">🏦</span>
+          <span className="text-xs mt-1">Accounts</span>
         </Link>
         <Link to="/cards" className="flex flex-col items-center py-2 px-4 text-gray-600">
           <span className="text-xl">💳</span>

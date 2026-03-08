@@ -1,5 +1,5 @@
 """Transactions API endpoints."""
-from fastapi import APIRouter, Depends, File, Query, UploadFile
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
@@ -8,26 +8,10 @@ from app.models.user import User
 from app.schemas.transaction import (
     TransactionListResponse,
     TransactionResponse,
-    TransactionUploadResponse,
 )
-from app.services.csv_parser import get_user_transactions, parse_csv
+from app.services.card_matching import get_user_transactions
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
-
-
-@router.post("/upload", response_model=TransactionUploadResponse)
-async def upload_transactions(
-    file: UploadFile = File(...),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """Upload a CSV file of transactions."""
-    content = await file.read()
-    csv_content = content.decode("utf-8")
-    
-    result = parse_csv(db, current_user.id, csv_content)
-    
-    return TransactionUploadResponse(**result)
 
 
 @router.get("", response_model=TransactionListResponse)
@@ -52,7 +36,7 @@ def list_transactions(
         limit=limit,
         offset=offset,
     )
-    
+
     # Get total count
     query = db.query(Transaction).filter(Transaction.user_id == current_user.id)
     if card_config_id:
@@ -64,7 +48,7 @@ def list_transactions(
     if credits_only:
         query = query.filter(Transaction.amount < 0)
     total = query.count()
-    
+
     return TransactionListResponse(
         transactions=[TransactionResponse.model_validate(t) for t in transactions],
         total=total,

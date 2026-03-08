@@ -209,53 +209,6 @@ export const cards = {
     }),
 };
 
-// Transactions
-export interface UploadResult {
-  imported: number;
-  skipped: number;
-  errors: string[];
-  total_errors: number;
-}
-
-export const transactions = {
-  upload: async (file: File): Promise<UploadResult> => {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    const sendRequest = async (token: string) =>
-      fetch(`${API_BASE}/transactions/upload`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-        credentials: 'include',
-      });
-
-    const initialToken = getAccessToken();
-    if (!initialToken) {
-      throw new Error('Not authenticated');
-    }
-
-    let response = await sendRequest(initialToken);
-    if (response.status === 401) {
-      const refreshed = await refreshAccessToken();
-      if (refreshed?.access_token) {
-        response = await sendRequest(refreshed.access_token);
-      } else {
-        setAccessToken(null);
-        window.location.href = '/login';
-        throw new Error('Session expired');
-      }
-    }
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ detail: 'Upload failed' }));
-      throw new Error(error.detail || 'Upload failed');
-    }
-
-    return response.json();
-  },
-};
-
 // Benefits
 export interface BenefitStatus {
   slug: string;
@@ -332,6 +285,14 @@ export interface PlaidSyncResponse {
   accounts_synced: number;
 }
 
+export interface PlaidItem {
+  id: string;
+  institution_name: string | null;
+  status: string;
+  last_synced_at: string | null;
+  created_at: string;
+}
+
 export const plaid = {
   createLinkToken: () =>
     fetchApi<PlaidLinkTokenResponse>('/plaid/link-token', { method: 'POST' }),
@@ -344,6 +305,12 @@ export const plaid = {
 
   sync: () =>
     fetchApi<PlaidSyncResponse>('/plaid/sync', { method: 'POST' }),
+
+  getItems: () =>
+    fetchApi<PlaidItem[]>('/plaid/items'),
+
+  removeItem: (itemId: string) =>
+    fetchApi<void>(`/plaid/items/${itemId}`, { method: 'DELETE' }),
 };
 
 export const benefits = {

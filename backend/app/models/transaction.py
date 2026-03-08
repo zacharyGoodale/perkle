@@ -1,15 +1,15 @@
-"""Transaction model for imported CSV data."""
+"""Transaction model."""
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Column, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Column, Float, ForeignKey, Index, String, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 from app.database import Base
 
 
 class Transaction(Base):
-    """Imported transaction from CSV file."""
+    """Transaction record."""
     
     __tablename__ = "transactions"
     __table_args__ = (
@@ -22,30 +22,25 @@ class Transaction(Base):
     user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     card_config_id = Column(String(36), ForeignKey("card_configs.id"))  # Matched via account patterns
     
-    # Core transaction fields from CSV
+    # Core transaction fields
     date = Column(String(10), nullable=False)  # YYYY-MM-DD
     name = Column(String(255), nullable=False)  # Merchant name
     amount = Column(Float, nullable=False)  # Positive = spend, negative = credit
     status = Column(String(50))
     
-    # Categorization from CSV
+    # Categorization
     category = Column(String(100))
     parent_category = Column(String(100))
     
-    # CSV metadata
-    excluded = Column(Integer, default=0)  # SQLite boolean
-    tags = Column(Text)  # Original tags from CSV
-    type = Column(String(50))  # Transaction type
+    # Additional fields
     account = Column(String(100), nullable=False)  # Account name for matching
     account_mask = Column(String(20))  # Last 4 digits
-    note = Column(Text)
-    recurring = Column(String(50))  # Recurring indicator
     
     # Benefit tracking
     benefit_slug = Column(String(50))  # Which benefit this applies to (if any)
 
     # Source tracking
-    source = Column(String(10), default="csv")  # "csv" or "plaid"
+    source = Column(String(10), default="plaid")  # "csv" or "plaid"
     plaid_transaction_id = Column(String(100), index=True)
     
     # Timestamps

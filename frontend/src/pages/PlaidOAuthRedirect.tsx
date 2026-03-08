@@ -9,7 +9,7 @@ export default function PlaidOAuthRedirect() {
 
   const { open, ready, error } = usePlaidLinkFlow({
     receivedRedirectUri: window.location.href,
-    onSuccess: () => navigate('/upload'),
+    onSuccess: () => navigate('/accounts'),
   });
 
   useEffect(() => {
@@ -30,7 +30,7 @@ export default function PlaidOAuthRedirect() {
             to="/upload"
             className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
-            Back to Upload
+            Back to Accounts
           </Link>
         </div>
       </div>

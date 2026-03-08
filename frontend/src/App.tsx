@@ -4,7 +4,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
-import Upload from './pages/Upload';
+import Accounts from './pages/Accounts';
 import Cards from './pages/Cards';
 import CardDetail from './pages/CardDetail';
 import PlaidOAuthRedirect from './pages/PlaidOAuthRedirect';
@@ -28,10 +28,10 @@ export default function App() {
             }
           />
           <Route
-            path="/upload"
+            path="/accounts"
             element={
               <ProtectedRoute>
-                <Upload />
+                <Accounts />
               </ProtectedRoute>
             }
           />
@@ -60,6 +60,9 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Redirect old /upload to /accounts */}
+          <Route path="/upload" element={<Navigate to="/accounts" replace />} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />

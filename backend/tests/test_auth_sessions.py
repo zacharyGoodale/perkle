@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 os.environ.setdefault("DATABASE_KEY", "test-db-key")
 os.environ.setdefault("DATABASE_URL", "sqlite:///./data/perkle.db")
@@ -16,6 +17,7 @@ from app.api import deps
 from app.api.auth import router as auth_router
 from app.database import Base
 from app.models.auth import RefreshSession
+from app.models.user import User  # Must be imported so Base.metadata.create_all creates the users table
 
 
 def _cookie_value(set_cookie_header: str, cookie_name: str) -> str:
@@ -26,7 +28,11 @@ def _cookie_value(set_cookie_header: str, cookie_name: str) -> str:
 
 
 def _build_test_client():
-    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
     TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     Base.metadata.create_all(bind=engine)
 

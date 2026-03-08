@@ -87,6 +87,7 @@ def exchange_public_token(
     # Check for re-link of existing item
     existing = db.query(PlaidItem).filter(
         PlaidItem.item_id == exchange_response.item_id,
+        PlaidItem.user_id == current_user.id,
     ).first()
     if existing:
         existing.access_token = exchange_response.access_token
