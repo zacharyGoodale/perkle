@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { plaid, type PlaidItem } from '../lib/api';
-import { CheckCircle, Trash2 } from 'lucide-react';
+import { CheckCircle, Loader2, Trash2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import PlaidLinkButton from '../components/PlaidLinkButton';
 
@@ -13,6 +13,7 @@ export default function Accounts() {
   const [loading, setLoading] = useState(true);
   const [removing, setRemoving] = useState<string | null>(null);
   const [plaidConnected, setPlaidConnected] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
   const loadItems = () => {
     plaid.getItems()
@@ -64,13 +65,30 @@ export default function Accounts() {
             <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
             <h2 className="font-semibold text-lg">Bank Connected</h2>
             <p className="text-sm text-gray-500 mt-1">
-              Successfully connected to {plaidConnected}. Transactions have been imported and benefits detected.
+              Successfully connected to {plaidConnected}. Your account has been linked successfully.
             </p>
             <button
-              onClick={() => navigate('/')}
-              className="mt-4 w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              disabled={syncing}
+              onClick={async () => {
+                setSyncing(true);
+                try {
+                  await plaid.sync();
+                } catch {
+                  // still navigate — dashboard will show the account
+                } finally {
+                  navigate('/');
+                }
+              }}
+              className="mt-4 w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-60 flex items-center justify-center gap-2"
             >
-              View Dashboard
+              {syncing ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Syncing Transactions...
+                </>
+              ) : (
+                'Sync Transactions & View Dashboard'
+              )}
             </button>
           </div>
         )}
@@ -115,8 +133,8 @@ export default function Accounts() {
           </section>
         )}
 
-        {/* Connect new account */}
-        <section>
+        {/* Connect new account (hidden after successful link to avoid dead button) */}
+        {!plaidConnected && <section>
           <h2 className="text-sm font-medium text-gray-500 mb-3">
             {items.length > 0 ? 'ADD ANOTHER ACCOUNT' : 'CONNECT AN ACCOUNT'}
           </h2>
@@ -126,7 +144,7 @@ export default function Accounts() {
             </p>
             <PlaidLinkButton onSuccess={handleSuccess} />
           </div>
-        </section>
+        </section>}
       </div>
 
       {/* Bottom Nav */}
