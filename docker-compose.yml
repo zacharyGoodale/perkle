@@ -7,6 +7,10 @@ services:
       - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be set}
       - DATABASE_URL=sqlite+pysqlcipher:///data/perkle.db
       - DATABASE_KEY=${DATABASE_KEY:?DATABASE_KEY must be set}
+      - PLAID_CLIENT_ID=${PLAID_CLIENT_ID}
+      - PLAID_SECRET=${PLAID_SECRET}
+      - PLAID_ENV=${PLAID_ENV}
+      - PLAID_REDIRECT_URI=${PLAID_REDIRECT_URI}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
